@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateAddressDto {
   @ApiProperty({ description: 'CEP', example: '12345-678' })
@@ -8,9 +8,6 @@ export class CreateAddressDto {
   })
   @IsNotEmpty({
     message: 'O CEP deve ser informado',
-  })
-  @Length(9, 9, {
-    message: 'O CEP deve ter 9 caracteres',
   })
   zipCode: string;
 

@@ -1,0 +1,41 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy para produção
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Executar deploy na VPS
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          command_timeout: 25m
+          request_pty: true
+          script: |
+            bash -lic '
+              set -e
+              cd /home/apps/jc-agenda-backend
+              git pull
+              yarn install
+              yarn build
+              yarn migrate:run
+              yarn seed:run
+            '

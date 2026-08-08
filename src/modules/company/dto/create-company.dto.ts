@@ -94,9 +94,6 @@ export class CreateCompanyDto {
   @IsPhoneNumber('BR', {
     message: 'O telefone deve ser válido',
   })
-  @IsNotEmpty({
-    message: 'O telefone adicional deve ser informado',
-  })
   @IsOptional()
   additionalPhone?: string;
 
