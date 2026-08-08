@@ -28,15 +28,14 @@ export class AuthService {
 
   async register(data: RegisterDto): Promise<CompanyUser> {
     return await this.dataSource.transaction(async (manager) => {
-      const userRepository: Repository<User> = manager.getRepository('User');
-      const companyRepository: Repository<Company> =
-        manager.getRepository('Company');
-      const companyUserRepository: Repository<CompanyUser> =
+      const userRepo: Repository<User> = manager.getRepository('User');
+      const companyRepo: Repository<Company> = manager.getRepository('Company');
+      const companyUserRepo: Repository<CompanyUser> =
         manager.getRepository('CompanyUser');
 
-      let user = userRepository.create(data.user);
+      let user = userRepo.create(data.user);
 
-      const userAlreadyExists = await userRepository.findOne({
+      const userAlreadyExists = await userRepo.findOne({
         where: { email: user.email },
         select: {
           id: true,
@@ -52,14 +51,14 @@ export class AuthService {
 
       const hashedPassword = await hash(user.password, 10);
 
-      user = await userRepository.save({
+      user = await userRepo.save({
         ...user,
         password: hashedPassword,
       });
 
-      let company = companyRepository.create(data.company);
+      let company = companyRepo.create(data.company);
 
-      const alreadyExists = await companyRepository.findOne({
+      const alreadyExists = await companyRepo.findOne({
         where: [{ cnpj: company.cnpj }, { slug: company.slug }],
         select: {
           id: true,
@@ -72,15 +71,15 @@ export class AuthService {
         throw new ConflictException('A empresa já está cadastrada');
       }
 
-      company = await companyRepository.save(company);
+      company = await companyRepo.save(company);
 
-      const companyUser = companyUserRepository.create({
+      const companyUser = companyUserRepo.create({
         userId: user.id,
         companyId: company.id,
         companyOwner: true,
       });
 
-      await companyUserRepository.save(companyUser);
+      await companyUserRepo.save(companyUser);
 
       return companyUser;
     });
