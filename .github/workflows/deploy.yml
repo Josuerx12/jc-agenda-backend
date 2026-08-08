@@ -36,6 +36,6 @@ jobs:
               git pull
               yarn install
               yarn build
-              yarn migrate:run
+              yarn migration:run
               yarn seed:run
             '
