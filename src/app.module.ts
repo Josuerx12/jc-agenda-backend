@@ -10,6 +10,9 @@ import { DatabaseModule } from './infra/database/database.module';
 import { ServicesModule } from './modules/services/services.module';
 import { CompanyUserModule } from './modules/company-user/company-user.module';
 import { ProductsModule } from './modules/products/products.module';
+import { SchedulesModule } from './modules/schedules/schedules.module';
+import { ClientsModule } from './modules/clients/clients.module';
+import { AppointmentsModule } from './modules/appointments/appointments.module';
 
 @Module({
   imports: [
@@ -21,6 +24,9 @@ import { ProductsModule } from './modules/products/products.module';
     ServicesModule,
     CompanyUserModule,
     ProductsModule,
+    SchedulesModule,
+    ClientsModule,
+    AppointmentsModule,
   ],
   controllers: [AppController],
   providers: [AppService, CompanyService],

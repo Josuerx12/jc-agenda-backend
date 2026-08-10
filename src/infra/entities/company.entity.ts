@@ -7,6 +7,17 @@ import { Product } from './product.entity';
 
 @Entity({ name: 'companies' })
 export class Company extends BaseEntity {
+  @Column({
+    name: 'timezone',
+    type: 'varchar',
+    length: 100,
+    default: 'America/Sao_Paulo',
+  })
+  timezone: string;
+
+  @Column({ name: 'slot_interval_minutes', type: 'int', default: 60 })
+  slotIntervalMinutes: number;
+
   @Column({ name: 'tranding_name', type: 'varchar', length: 100 })
   trandingName: string;
 

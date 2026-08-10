@@ -11,6 +11,12 @@ import { User } from '../entities/user.entity';
 import { Service } from '../entities/services.entity';
 import { CompanyUserService } from '../entities/company-user-service.entity';
 import { Product } from '../entities/product.entity';
+import { ProfessionalWorkSchedule } from '../entities/professional-work-schedule.entity';
+import { CompanyHoliday } from '../entities/company-holiday.entity';
+import { ProfessionalTimeOff } from '../entities/professional-time-off.entity';
+import { Client } from '../entities/client.entity';
+import { Appointment } from '../entities/appointment.entity';
+import { AppointmentService } from '../entities/appointment-service.entity';
 
 const entities = [
   Address,
@@ -23,6 +29,12 @@ const entities = [
   Service,
   CompanyUserService,
   Product,
+  ProfessionalWorkSchedule,
+  CompanyHoliday,
+  ProfessionalTimeOff,
+  Client,
+  Appointment,
+  AppointmentService,
 ];
 
 @Global()
