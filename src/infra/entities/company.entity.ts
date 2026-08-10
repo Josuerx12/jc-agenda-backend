@@ -3,6 +3,7 @@ import { BaseEntity } from './base.entity';
 import { CompanyUser } from './company-user.entity';
 import { CompanyAddress } from './company-address.entity';
 import { CompanyUserService } from './company-user-service.entity';
+import { Product } from './product.entity';
 
 @Entity({ name: 'companies' })
 export class Company extends BaseEntity {
@@ -43,4 +44,7 @@ export class Company extends BaseEntity {
     (companyUserService) => companyUserService.companyUser,
   )
   services: Relation<CompanyUserService[]>;
+
+  @OneToMany(() => Product, (product) => product.company)
+  products: Relation<Product[]>;
 }

@@ -10,6 +10,7 @@ import { State } from '../entities/state.entity';
 import { User } from '../entities/user.entity';
 import { Service } from '../entities/services.entity';
 import { CompanyUserService } from '../entities/company-user-service.entity';
+import { Product } from '../entities/product.entity';
 
 const entities = [
   Address,
@@ -21,6 +22,7 @@ const entities = [
   User,
   Service,
   CompanyUserService,
+  Product,
 ];
 
 @Global()

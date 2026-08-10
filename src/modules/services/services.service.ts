@@ -1,8 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,6 +8,7 @@ import { paginate, PaginateQuery } from 'nestjs-paginate';
 import { servicePaginationConfig } from './pagination/service-pagination.config';
 import { CompanyUserService } from 'src/infra/entities/company-user-service.entity';
 import { CompanyUser } from 'src/infra/entities/company-user.entity';
+import { ensureCanManageCompany } from 'src/infra/authorization/company-permission';
 
 @Injectable()
 export class ServicesService {
@@ -24,18 +21,11 @@ export class ServicesService {
     private readonly companyUserServiceRepository: Repository<CompanyUserService>,
   ) {}
   async create(createServiceDto: CreateServiceDto, userId: string) {
-    const companyUserConnected = await this.companyUserRepository.findOne({
-      where: { userId, companyId: createServiceDto.companyId },
-    });
-
-    if (
-      !companyUserConnected ||
-      (!companyUserConnected.isAdmin && !companyUserConnected.isOwner)
-    ) {
-      throw new ForbiddenException(
-        `Usuário não tem permissão para criar serviços para a empresa.`,
-      );
-    }
+    await ensureCanManageCompany(
+      this.companyUserRepository,
+      createServiceDto.companyId,
+      userId,
+    );
 
     await this.serviceRepository.save(createServiceDto);
   }
@@ -68,18 +58,11 @@ export class ServicesService {
     const { companyId, description, durationInMinutes, name, price } =
       updateServiceDto;
 
-    const companyUserConnected = await this.companyUserRepository.findOne({
-      where: { userId, companyId },
-    });
-
-    if (
-      !companyUserConnected ||
-      (!companyUserConnected.isAdmin && !companyUserConnected.isOwner)
-    ) {
-      throw new ForbiddenException(
-        `Usuário não tem permissão para editar serviços da empresa.`,
-      );
-    }
+    await ensureCanManageCompany(
+      this.companyUserRepository,
+      companyId!,
+      userId,
+    );
 
     const service = await this.serviceRepository.findOneBy({
       id,
@@ -101,18 +84,7 @@ export class ServicesService {
   }
 
   async remove(id: string, companyId: string, userId: string) {
-    const companyUserConnected = await this.companyUserRepository.findOne({
-      where: { userId, companyId },
-    });
-
-    if (
-      !companyUserConnected ||
-      (!companyUserConnected.isAdmin && !companyUserConnected.isOwner)
-    ) {
-      throw new ForbiddenException(
-        `Usuário não tem permissão para deletar serviços da empresa.`,
-      );
-    }
+    await ensureCanManageCompany(this.companyUserRepository, companyId, userId);
     const service = await this.serviceRepository.existsBy({ id, companyId });
 
     if (!service) {

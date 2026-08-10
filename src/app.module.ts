@@ -9,6 +9,7 @@ import { AddressesModule } from './modules/addresses/addresses.module';
 import { DatabaseModule } from './infra/database/database.module';
 import { ServicesModule } from './modules/services/services.module';
 import { CompanyUserModule } from './modules/company-user/company-user.module';
+import { ProductsModule } from './modules/products/products.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { CompanyUserModule } from './modules/company-user/company-user.module';
     AddressesModule,
     ServicesModule,
     CompanyUserModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService, CompanyService],

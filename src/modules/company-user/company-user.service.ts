@@ -1,6 +1,5 @@
 import {
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -16,6 +15,7 @@ import { User } from 'src/infra/entities/user.entity';
 import { hash } from 'bcryptjs';
 import { Company } from 'src/infra/entities/company.entity';
 import { CompanyUserService } from 'src/infra/entities/company-user-service.entity';
+import { ensureCanManageCompany } from 'src/infra/authorization/company-permission';
 
 @Injectable()
 export class CompanyUserServices {
@@ -39,18 +39,11 @@ export class CompanyUserServices {
         where: { id: createCompanyUserDto.companyId },
       });
 
-      const loggedInCompanyUser = await companyUserRepo.findOne({
-        where: { userId, companyId: createCompanyUserDto.companyId },
-      });
-
-      if (
-        !loggedInCompanyUser ||
-        (!loggedInCompanyUser.isAdmin && !loggedInCompanyUser.isOwner)
-      ) {
-        throw new ForbiddenException(
-          'O usuário logado não tem permissão para criar usuários nesta empresa.',
-        );
-      }
+      await ensureCanManageCompany(
+        companyUserRepo,
+        createCompanyUserDto.companyId,
+        userId,
+      );
 
       if (!company) {
         throw new NotFoundException(
@@ -144,18 +137,11 @@ export class CompanyUserServices {
       const userRepo = manager.getRepository(User);
       const companyUserServiceRepo = manager.getRepository(CompanyUserService);
 
-      const loggedInCompanyUser = await companyUserRepo.findOne({
-        where: { userId, companyId: updateCompanyUserDto.companyId },
-      });
-
-      if (
-        !loggedInCompanyUser ||
-        (!loggedInCompanyUser.isAdmin && !loggedInCompanyUser.isOwner)
-      ) {
-        throw new ForbiddenException(
-          'O usuário logado não tem permissão para atualizar usuários nesta empresa.',
-        );
-      }
+      await ensureCanManageCompany(
+        companyUserRepo,
+        updateCompanyUserDto.companyId!,
+        userId,
+      );
 
       let companyUser = await companyUserRepo.findOne({
         where: { id },
@@ -233,18 +219,7 @@ export class CompanyUserServices {
   }
 
   async remove(id: string, companyId: string, userId: string) {
-    const loggedInCompanyUser = await this.companyUserRepository.findOne({
-      where: { userId, companyId },
-    });
-
-    if (
-      !loggedInCompanyUser ||
-      (!loggedInCompanyUser.isAdmin && !loggedInCompanyUser.isOwner)
-    ) {
-      throw new ForbiddenException(
-        'O usuário logado não tem permissão para remover usuários desta empresa.',
-      );
-    }
+    await ensureCanManageCompany(this.companyUserRepository, companyId, userId);
 
     const companyUser = await this.companyUserRepository.findOne({
       where: { id, companyId },
