@@ -38,4 +38,5 @@ jobs:
               yarn build
               yarn migration:run
               yarn seed:run
+              pm2 restart 1
             '

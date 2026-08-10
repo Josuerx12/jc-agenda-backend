@@ -113,8 +113,7 @@ export class CompanyUserServices {
   findAll(query: PaginateQuery, companyId: string) {
     const queryBuilder = this.companyUserRepository
       .createQueryBuilder('companyUser')
-      .innerJoin('companyUser.company', 'company')
-      .where('company.id = :companyId', { companyId });
+      .where('companyUser.companyId = :companyId', { companyId });
 
     return paginate(query, queryBuilder, companyUserPaginationConfig);
   }

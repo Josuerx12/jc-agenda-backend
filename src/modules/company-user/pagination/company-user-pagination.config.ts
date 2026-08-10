@@ -2,6 +2,9 @@ import { FilterOperator, PaginateConfig } from 'nestjs-paginate';
 import { CompanyUser } from 'src/infra/entities/company-user.entity';
 
 export const companyUserPaginationConfig: PaginateConfig<CompanyUser> = {
+  relations: {
+    user: true,
+  },
   sortableColumns: [
     'user.firstName',
     'user.lastName',
