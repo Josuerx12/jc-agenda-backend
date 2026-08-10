@@ -2,6 +2,7 @@ import { Column, Entity, OneToMany, OneToOne, type Relation } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { CompanyUser } from './company-user.entity';
 import { CompanyAddress } from './company-address.entity';
+import { CompanyUserService } from './company-user-service.entity';
 
 @Entity({ name: 'companies' })
 export class Company extends BaseEntity {
@@ -36,4 +37,10 @@ export class Company extends BaseEntity {
 
   @OneToOne(() => CompanyAddress, (address) => address.company)
   address: Relation<CompanyAddress>;
+
+  @OneToMany(
+    () => CompanyUserService,
+    (companyUserService) => companyUserService.companyUser,
+  )
+  services: Relation<CompanyUserService[]>;
 }

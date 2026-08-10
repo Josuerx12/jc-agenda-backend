@@ -20,11 +20,14 @@ export class MeResponseDto {
   isActive: boolean;
 
   @ApiProperty({ example: false })
-  isAdmin: boolean;
-
-  @ApiProperty({ example: false })
   isMaster: boolean;
 
   @ApiProperty({ example: false })
   isBlocked: boolean;
+
+  @ApiProperty({ example: true })
+  isOwner: boolean;
+
+  @ApiProperty({ example: true })
+  isProfessional: boolean;
 }

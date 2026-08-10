@@ -76,7 +76,9 @@ export class AuthService {
       const companyUser = companyUserRepo.create({
         userId: user.id,
         companyId: company.id,
-        companyOwner: true,
+        isOwner: true,
+        isAdmin: true,
+        isProfessional: false,
       });
 
       await companyUserRepo.save(companyUser);
@@ -97,7 +99,6 @@ export class AuthService {
         id: true,
         companyId: true,
         userId: true,
-        companyOwner: true,
         user: {
           id: true,
           email: true,
@@ -136,29 +137,53 @@ export class AuthService {
   }
 
   async me(id: string): Promise<MeResponseDto> {
-    const user = await this.userRepository.findOne({
+    console.log('User ID:', id);
+
+    const companyUser = await this.companyUserRepository.findOne({
       where: {
-        id,
+        userId: id,
       },
       select: {
         id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        isActive: true,
+        companyId: true,
         isAdmin: true,
-        isMaster: true,
-        isBlocked: true,
-        createdAt: true,
-        updatedAt: true,
+        isOwner: true,
+        isProfessional: true,
+        user: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          isActive: true,
+          isMaster: true,
+          isBlocked: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
+      relations: {
+        user: true,
       },
     });
+
+    const user = companyUser?.user;
 
     if (!user) {
       throw new UnauthorizedException('Usuário não encontrado');
     }
 
-    return user;
+    return {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone,
+      isActive: user.isActive,
+      isMaster: user.isMaster,
+      isBlocked: user.isBlocked,
+      isOwner: companyUser.isOwner,
+      isProfessional: companyUser.isProfessional,
+    };
   }
 }

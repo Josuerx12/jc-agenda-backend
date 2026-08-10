@@ -1,14 +1,6 @@
-import {
-  Controller,
-  Body,
-  Get,
-  Post,
-  Req,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Controller, Body, Get, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { MeResponseDto } from './dto/me-response.dto';
-import { type Request } from 'express';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { RegisterDto } from './dto/register.dto';
 import { SignInDto, SignInResponseDto } from './dto/sign-in.dto';
@@ -17,6 +9,7 @@ import {
   ApiCompanyIdHeader,
   CompanyId,
 } from 'src/infra/decorators/company.decorator';
+import { UserId } from 'src/infra/decorators/user.decorator';
 
 @Controller()
 export class AuthController {
@@ -60,13 +53,7 @@ export class AuthController {
   }
 
   @Get('me')
-  async me(@Req() req: Request): Promise<MeResponseDto> {
-    if (!req.userId) {
-      throw new UnauthorizedException(
-        'Não foi possível identificar o usuário autenticado, tente fazer login novamente',
-      );
-    }
-
-    return await this.authService.me(req.userId);
+  async me(@UserId() userId: string): Promise<MeResponseDto> {
+    return await this.authService.me(userId);
   }
 }
