@@ -1,6 +1,7 @@
 import { Repository } from 'typeorm';
 import { Appointment } from '../../infra/entities/appointment.entity';
 import { Company } from '../../infra/entities/company.entity';
+import { CompanySetting } from '../../infra/entities/company-setting.entity';
 import { CompanyHoliday } from '../../infra/entities/company-holiday.entity';
 import { CompanyUserService } from '../../infra/entities/company-user-service.entity';
 import { CompanyUser } from '../../infra/entities/company-user.entity';
@@ -24,10 +25,15 @@ describe('AvailabilityService', () => {
     const companies = {
       findOneBy: jest.fn().mockResolvedValue({
         id: 'company-id',
+      }),
+    } as unknown as Repository<Company>;
+    const settings = {
+      findOneBy: jest.fn().mockResolvedValue({
+        companyId: 'company-id',
         timezone: 'America/Sao_Paulo',
         slotIntervalMinutes: 60,
       }),
-    } as unknown as Repository<Company>;
+    } as unknown as Repository<CompanySetting>;
     const professionals = {
       findOne: jest.fn().mockResolvedValue({
         id: 'professional-id',
@@ -66,6 +72,7 @@ describe('AvailabilityService', () => {
     } as unknown as Repository<Appointment>;
     const availability = new AvailabilityService(
       companies,
+      settings,
       professionals,
       professionalServices,
       schedules,

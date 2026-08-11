@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  ForbiddenException,
 } from '@nestjs/common';
 import { CompanyService } from './company.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
@@ -19,7 +20,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { IsPublic } from 'src/infra/decorators/auth.decorator';
-import { UpdateSchedulingSettingsDto } from './dto/update-scheduling-settings.dto';
+import { UpdateCompanySettingsDto } from './dto/update-company-settings.dto';
 import {
   ApiCompanyIdHeader,
   CompanyId,
@@ -39,7 +40,16 @@ export class CompanyController {
     return this.companyService.listTimezones();
   }
 
-  @Patch('scheduling-settings')
+  @Get('settings')
+  @ApiCompanyIdHeader()
+  @ApiOperation({ summary: 'Consultar configurações privadas da empresa' })
+  @ApiOkResponse({ description: 'Configurações da empresa' })
+  @ApiForbiddenResponse({ description: 'Apenas dono ou administrador' })
+  getSettings(@CompanyId() companyId: string, @UserId() userId: string) {
+    return this.companyService.getSettings(companyId, userId);
+  }
+
+  @Patch('settings')
   @ApiCompanyIdHeader()
   @ApiOperation({
     summary: 'Atualizar configurações de agendamento da empresa',
@@ -47,16 +57,12 @@ export class CompanyController {
   @ApiOkResponse({ description: 'Configurações atualizadas' })
   @ApiBadRequestResponse({ description: 'Timezone ou intervalo inválido' })
   @ApiForbiddenResponse({ description: 'Apenas dono ou administrador' })
-  updateSchedulingSettings(
+  updateSettings(
     @CompanyId() companyId: string,
     @UserId() userId: string,
-    @Body() settings: UpdateSchedulingSettingsDto,
+    @Body() settings: UpdateCompanySettingsDto,
   ) {
-    return this.companyService.updateSchedulingSettings(
-      companyId,
-      userId,
-      settings,
-    );
+    return this.companyService.updateSettings(companyId, userId, settings);
   }
 
   @Post()
@@ -75,8 +81,24 @@ export class CompanyController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCompanyDto: UpdateCompanyDto) {
-    return this.companyService.update(+id, updateCompanyDto);
+  @ApiCompanyIdHeader()
+  @ApiOperation({ summary: 'Atualizar dados básicos da empresa' })
+  @ApiOkResponse({
+    description: 'Empresa atualizada sem configurações privadas',
+  })
+  @ApiForbiddenResponse({
+    description: 'Apenas dono ou administrador da própria empresa',
+  })
+  update(
+    @Param('id') id: string,
+    @CompanyId() companyId: string,
+    @UserId() userId: string,
+    @Body() updateCompanyDto: UpdateCompanyDto,
+  ) {
+    if (id !== companyId) {
+      throw new ForbiddenException('Não é permitido alterar outra empresa');
+    }
+    return this.companyService.update(companyId, userId, updateCompanyDto);
   }
 
   @Delete(':id')

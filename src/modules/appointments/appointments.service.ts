@@ -14,6 +14,7 @@ import {
 import { AppointmentService } from '../../infra/entities/appointment-service.entity';
 import { Client } from '../../infra/entities/client.entity';
 import { Company } from '../../infra/entities/company.entity';
+import { CompanySetting } from '../../infra/entities/company-setting.entity';
 import { CompanyUser } from '../../infra/entities/company-user.entity';
 import { AvailabilityService } from './availability.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
@@ -29,6 +30,8 @@ export class AppointmentsService {
     @InjectRepository(CompanyUser)
     private readonly companyUsers: Repository<CompanyUser>,
     @InjectRepository(Company) private readonly companies: Repository<Company>,
+    @InjectRepository(CompanySetting)
+    private readonly settings: Repository<CompanySetting>,
     private readonly availability: AvailabilityService,
   ) {}
 
@@ -38,7 +41,9 @@ export class AppointmentsService {
       throw new BadRequestException('Horário de início inválido');
     const company = await this.companies.findOneBy({ id: companyId });
     if (!company) throw new NotFoundException('Empresa não encontrada');
-    const localDate = utcToLocal(startAt, company.timezone).slice(0, 10);
+    const settings = await this.settings.findOneBy({ companyId });
+    const timezone = settings?.timezone ?? 'America/Sao_Paulo';
+    const localDate = utcToLocal(startAt, timezone).slice(0, 10);
 
     return this.dataSource.transaction(async (manager) => {
       await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [

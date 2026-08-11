@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsInt, IsString } from 'class-validator';
 
-export class UpdateSchedulingSettingsDto {
+export class UpdateCompanySettingsDto {
   @ApiProperty({ example: 'America/Sao_Paulo' })
   @IsString()
   timezone: string;

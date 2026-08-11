@@ -17,6 +17,7 @@ import { ProfessionalTimeOff } from '../entities/professional-time-off.entity';
 import { Client } from '../entities/client.entity';
 import { Appointment } from '../entities/appointment.entity';
 import { AppointmentService } from '../entities/appointment-service.entity';
+import { CompanySetting } from '../entities/company-setting.entity';
 
 const entities = [
   Address,
@@ -35,6 +36,7 @@ const entities = [
   Client,
   Appointment,
   AppointmentService,
+  CompanySetting,
 ];
 
 @Global()

@@ -13,6 +13,7 @@ import { Company } from 'src/infra/entities/company.entity';
 import { SignInDto, SignInResponseDto } from './dto/sign-in.dto';
 import { JwtService } from '@nestjs/jwt';
 import { MeResponseDto } from './dto/me-response.dto';
+import { CompanySetting } from 'src/infra/entities/company-setting.entity';
 
 @Injectable()
 export class AuthService {
@@ -32,6 +33,7 @@ export class AuthService {
       const companyRepo: Repository<Company> = manager.getRepository('Company');
       const companyUserRepo: Repository<CompanyUser> =
         manager.getRepository('CompanyUser');
+      const companySettingRepo = manager.getRepository(CompanySetting);
 
       let user = userRepo.create(data.user);
 
@@ -72,6 +74,12 @@ export class AuthService {
       }
 
       company = await companyRepo.save(company);
+
+      await companySettingRepo.save({
+        companyId: company.id,
+        timezone: 'America/Sao_Paulo',
+        slotIntervalMinutes: 60,
+      });
 
       const companyUser = companyUserRepo.create({
         userId: user.id,

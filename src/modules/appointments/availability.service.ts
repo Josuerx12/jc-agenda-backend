@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, LessThan, MoreThan, Not, Repository } from 'typeorm';
 import { Company } from '../../infra/entities/company.entity';
+import { CompanySetting } from '../../infra/entities/company-setting.entity';
 import { CompanyUser } from '../../infra/entities/company-user.entity';
 import { CompanyUserService } from '../../infra/entities/company-user-service.entity';
 import { ProfessionalWorkSchedule } from '../../infra/entities/professional-work-schedule.entity';
@@ -27,6 +28,8 @@ import {
 export class AvailabilityService {
   constructor(
     @InjectRepository(Company) private readonly companies: Repository<Company>,
+    @InjectRepository(CompanySetting)
+    private readonly settings: Repository<CompanySetting>,
     @InjectRepository(CompanyUser)
     private readonly professionals: Repository<CompanyUser>,
     @InjectRepository(CompanyUserService)
@@ -73,8 +76,9 @@ export class AvailabilityService {
     const serviceIds = [...new Set(requestedServiceIds)];
     if (!serviceIds.length)
       throw new BadRequestException('Informe ao menos um serviço');
-    const [company, professional] = await Promise.all([
+    const [company, settings, professional] = await Promise.all([
       this.companies.findOneBy({ id: companyId }),
+      this.settings.findOneBy({ companyId }),
       this.professionals.findOne({
         where: {
           id: professionalId,
@@ -86,6 +90,8 @@ export class AvailabilityService {
       }),
     ]);
     if (!company) throw new NotFoundException('Empresa não encontrada');
+    const timezone = settings?.timezone ?? 'America/Sao_Paulo';
+    const slotIntervalMinutes = settings?.slotIntervalMinutes ?? 60;
     if (!professional)
       throw new NotFoundException('Profissional não encontrado');
     const links = await this.professionalServices.find({
@@ -139,7 +145,7 @@ export class AvailabilityService {
       })),
       totalDurationMinutes,
       totalPrice,
-      timezone: company.timezone,
+      timezone,
     };
     if (!schedule || (await this.holidays.existsBy({ companyId, date })))
       return { ...base, availableSlots: [] };
@@ -147,12 +153,8 @@ export class AvailabilityService {
     const nextDate = new Date(`${date}T12:00:00Z`);
     nextDate.setUTCDate(nextDate.getUTCDate() + 1);
     const nextDateString = nextDate.toISOString().slice(0, 10);
-    const dayStart = localDateTimeToUtc(date, '00:00', company.timezone);
-    const dayEnd = localDateTimeToUtc(
-      nextDateString,
-      '00:00',
-      company.timezone,
-    );
+    const dayStart = localDateTimeToUtc(date, '00:00', timezone);
+    const dayEnd = localDateTimeToUtc(nextDateString, '00:00', timezone);
     const [timeOffs, appointments] = await Promise.all([
       this.timeOffs.find({
         where: {
@@ -173,26 +175,18 @@ export class AvailabilityService {
     const workStart = localDateTimeToUtc(
       date,
       schedule.startTime.slice(0, 5),
-      company.timezone,
+      timezone,
     );
     const workEnd = localDateTimeToUtc(
       date,
       schedule.endTime.slice(0, 5),
-      company.timezone,
+      timezone,
     );
     const lunchStart = schedule.lunchStartTime
-      ? localDateTimeToUtc(
-          date,
-          schedule.lunchStartTime.slice(0, 5),
-          company.timezone,
-        )
+      ? localDateTimeToUtc(date, schedule.lunchStartTime.slice(0, 5), timezone)
       : null;
     const lunchEnd = schedule.lunchEndTime
-      ? localDateTimeToUtc(
-          date,
-          schedule.lunchEndTime.slice(0, 5),
-          company.timezone,
-        )
+      ? localDateTimeToUtc(date, schedule.lunchEndTime.slice(0, 5), timezone)
       : null;
     const availableSlots: Array<{
       startAt: string;
@@ -203,7 +197,7 @@ export class AvailabilityService {
     for (
       let start = workStart;
       addMinutes(start, totalDurationMinutes) <= workEnd;
-      start = addMinutes(start, company.slotIntervalMinutes)
+      start = addMinutes(start, slotIntervalMinutes)
     ) {
       const end = addMinutes(start, totalDurationMinutes);
       if (start < new Date()) continue;
@@ -222,8 +216,8 @@ export class AvailabilityService {
       availableSlots.push({
         startAt: start.toISOString(),
         endAt: end.toISOString(),
-        localStart: utcToLocal(start, company.timezone),
-        localEnd: utcToLocal(end, company.timezone),
+        localStart: utcToLocal(start, timezone),
+        localEnd: utcToLocal(end, timezone),
       });
     }
     return { ...base, availableSlots };
