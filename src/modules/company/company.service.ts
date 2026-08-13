@@ -63,10 +63,15 @@ export class CompanyService {
     updateCompanyDto: UpdateCompanyDto,
   ) {
     await ensureCanManageCompany(this.companyUserRepository, companyId, userId);
-    const result = await this.companyRepository.update(
-      companyId,
-      updateCompanyDto,
-    );
+    const { trandingName, corporateName, email, phone, additionalPhone } =
+      updateCompanyDto;
+    const result = await this.companyRepository.update(companyId, {
+      trandingName,
+      corporateName,
+      email: email?.trim().toLowerCase(),
+      phone,
+      additionalPhone,
+    });
     if (!result.affected) throw new NotFoundException('Empresa não encontrada');
     return this.companyRepository.findOneByOrFail({ id: companyId });
   }

@@ -64,21 +64,6 @@ export class CreateCompanyUserDto {
   phone: string;
 
   @ApiProperty({
-    description: 'Senha do usuário',
-    example: 'senha123',
-  })
-  @IsString({
-    message: 'A senha deve ser válida',
-  })
-  @IsNotEmpty({
-    message: 'A senha deve ser informada',
-  })
-  @Length(6, 255, {
-    message: 'A senha deve ter no mínimo 6 caracteres',
-  })
-  password: string;
-
-  @ApiProperty({
     description: 'Id dos serviços que o usuário terá acesso',
     example: ['1234-5678-9012-3456', '9876-5432-1098-7654'],
   })

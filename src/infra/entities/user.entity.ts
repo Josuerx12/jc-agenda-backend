@@ -28,6 +28,9 @@ export class User extends BaseEntity {
   @Column({ name: 'is_blocked', type: 'boolean', default: false })
   isBlocked: boolean;
 
+  @Column({ name: 'auth_version', type: 'integer', default: 0, select: false })
+  authVersion: number;
+
   @OneToMany(() => CompanyUser, (companyUser) => companyUser.user)
   companies: Relation<CompanyUser[]>;
 }

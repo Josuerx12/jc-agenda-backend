@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   createParamDecorator,
   ExecutionContext,
 } from '@nestjs/common';
@@ -23,6 +24,13 @@ export const CompanyId = createParamDecorator(
     if (!isUUID(companyId)) {
       throw new BadRequestException(
         `O header ${COMPANY_ID_HEADER} deve ser um UUID válido`,
+      );
+    }
+
+    const authenticatedCompanyId = request['companyId'];
+    if (authenticatedCompanyId && authenticatedCompanyId !== companyId) {
+      throw new ForbiddenException(
+        'A empresa informada não pertence à sessão autenticada',
       );
     }
 

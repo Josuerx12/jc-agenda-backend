@@ -15,6 +15,23 @@ services:
     restart: unless-stopped
     ports:
       - '${REDIS_PORT}:6379'
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    command: >-
+      sh -c 'if [ -n "$$REDIS_PASSWORD" ]; then
+        exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD";
+      else
+        exec redis-server --appendonly yes;
+      fi'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'if [ -n "$$REDIS_PASSWORD" ]; then redis-cli -a "$$REDIS_PASSWORD" ping; else redis-cli ping; fi',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     volumes:
       - redis_data:/data
 volumes:

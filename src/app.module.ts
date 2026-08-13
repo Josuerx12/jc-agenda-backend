@@ -13,6 +13,7 @@ import { ProductsModule } from './modules/products/products.module';
 import { SchedulesModule } from './modules/schedules/schedules.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { AppointmentsModule } from './modules/appointments/appointments.module';
+import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { AppointmentsModule } from './modules/appointments/appointments.module';
     SchedulesModule,
     ClientsModule,
     AppointmentsModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [AppService, CompanyService],

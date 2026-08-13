@@ -16,6 +16,9 @@ import { hash } from 'bcryptjs';
 import { Company } from 'src/infra/entities/company.entity';
 import { CompanyUserService } from 'src/infra/entities/company-user-service.entity';
 import { ensureCanManageCompany } from 'src/infra/authorization/company-permission';
+import { randomBytes } from 'node:crypto';
+import { EmailService } from '../email/email.service';
+import { EmailTemplate } from 'src/infra/entities/email-outbox.entity';
 
 @Injectable()
 export class CompanyUserServices {
@@ -23,6 +26,7 @@ export class CompanyUserServices {
     @InjectRepository(CompanyUser)
     private readonly companyUserRepository: Repository<CompanyUser>,
     @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly emailService: EmailService,
   ) {}
 
   async create(createCompanyUserDto: CreateCompanyUserDto, userId: string) {
@@ -54,18 +58,19 @@ export class CompanyUserServices {
       const queryBuilder = servicesRepo.createQueryBuilder('service');
       queryBuilder.where('service.id IN (:...services)', { services });
 
-      const hashedPassword = await hash(createCompanyUserDto.password, 10);
+      const temporaryPassword = this.generateTemporaryPassword();
+      const hashedPassword = await hash(temporaryPassword, 10);
 
       let user = userRepo.create({
         firstName: createCompanyUserDto.firstName,
         lastName: createCompanyUserDto.lastName,
-        email: createCompanyUserDto.email,
+        email: createCompanyUserDto.email.trim().toLowerCase(),
         phone: createCompanyUserDto.phone,
         password: hashedPassword,
       });
 
       const usersExists = await userRepo.existsBy({
-        email: createCompanyUserDto.email,
+        email: createCompanyUserDto.email.trim().toLowerCase(),
       });
 
       if (usersExists) {
@@ -100,7 +105,27 @@ export class CompanyUserServices {
 
         await companyUserServiceRepo.save(companyUserServices);
       }
+
+      await this.emailService.enqueue(
+        {
+          to: user.email,
+          subject: `Seu acesso à ${company.trandingName}`,
+          template: EmailTemplate.USER_INVITATION,
+          context: {
+            firstName: user.firstName,
+            companyName: company.trandingName,
+            temporaryPassword,
+            platformUrl: this.emailService.platformUrl(company.slug),
+          },
+        },
+        manager,
+      );
     });
+  }
+
+  private generateTemporaryPassword(): string {
+    // Garante diversidade de caracteres sem depender de uma senha fornecida pelo cliente.
+    return `Jc@${randomBytes(9).toString('base64url')}9a`;
   }
 
   findAll(query: PaginateQuery, companyId: string) {
@@ -146,6 +171,7 @@ export class CompanyUserServices {
       let companyUser = await companyUserRepo.findOne({
         where: { id },
         relations: {
+          user: true,
           services: true,
         },
       });
@@ -185,8 +211,11 @@ export class CompanyUserServices {
         await companyUserServiceRepo.save(companyUserServices);
       }
 
-      if (email && email !== companyUser.user.email) {
-        const exists = await manager.getRepository(User).existsBy({ email });
+      const normalizedEmail = email?.trim().toLowerCase();
+      if (normalizedEmail && normalizedEmail !== companyUser.user.email) {
+        const exists = await manager
+          .getRepository(User)
+          .existsBy({ email: normalizedEmail });
 
         if (exists) {
           throw new ConflictException(
@@ -194,7 +223,10 @@ export class CompanyUserServices {
           );
         }
 
-        await userRepo.update(companyUser.user.id, { email });
+        await userRepo.update(companyUser.user.id, {
+          email: normalizedEmail,
+          authVersion: () => 'auth_version + 1',
+        });
       }
 
       if (firstName && firstName !== companyUser.user.firstName) {

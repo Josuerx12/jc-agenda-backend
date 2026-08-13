@@ -18,6 +18,8 @@ import { Client } from '../entities/client.entity';
 import { Appointment } from '../entities/appointment.entity';
 import { AppointmentService } from '../entities/appointment-service.entity';
 import { CompanySetting } from '../entities/company-setting.entity';
+import { EmailOutbox } from '../entities/email-outbox.entity';
+import { PasswordResetToken } from '../entities/password-reset-token.entity';
 
 const entities = [
   Address,
@@ -37,6 +39,8 @@ const entities = [
   Appointment,
   AppointmentService,
   CompanySetting,
+  EmailOutbox,
+  PasswordResetToken,
 ];
 
 @Global()

@@ -5,6 +5,7 @@ import {
   IsPhoneNumber,
   IsString,
   Length,
+  MaxLength,
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -69,8 +70,11 @@ export class CreateUserDto {
   @IsNotEmpty({
     message: 'A senha deve ser informada',
   })
-  @Length(6, 255, {
-    message: 'A senha deve ter no mínimo 6 caracteres',
+  @Length(8, 72, {
+    message: 'A senha deve ter entre 8 e 72 caracteres',
+  })
+  @MaxLength(72, {
+    message: 'A senha deve ter no máximo 72 caracteres',
   })
   password: string;
 }

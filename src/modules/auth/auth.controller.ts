@@ -1,4 +1,4 @@
-import { Controller, Body, Get, Post } from '@nestjs/common';
+import { Controller, Body, Get, HttpCode, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { MeResponseDto } from './dto/me-response.dto';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -10,12 +10,16 @@ import {
   CompanyId,
 } from 'src/infra/decorators/company.decorator';
 import { UserId } from 'src/infra/decorators/user.decorator';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller()
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('sign-up')
+  @HttpCode(204)
   @IsPublic()
   @ApiOperation({
     summary: 'Endpoint para criar um novo usuário e empresa',
@@ -32,6 +36,7 @@ export class AuthController {
 
   @Post('sign-in')
   @IsPublic()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiCompanyIdHeader()
   @ApiOperation({
     summary: 'Endpoint para autenticar um usuário',
@@ -47,9 +52,32 @@ export class AuthController {
     @CompanyId() companyId: string,
     @Body() data: SignInDto,
   ): Promise<SignInResponseDto> {
-    console.log('Company ID:', companyId);
-
     return await this.authService.singIn(data, companyId);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(204)
+  @IsPublic()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Solicita um link de recuperação de senha' })
+  @ApiResponse({
+    status: 204,
+    description:
+      'Solicitação processada sem revelar se o e-mail está cadastrado',
+  })
+  async forgotPassword(@Body() data: ForgotPasswordDto): Promise<void> {
+    await this.authService.forgotPassword(data.email);
+  }
+
+  @Post('reset-password')
+  @HttpCode(204)
+  @IsPublic()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Redefine a senha usando o token recebido' })
+  @ApiResponse({ status: 204, description: 'Senha redefinida com sucesso' })
+  @ApiResponse({ status: 400, description: 'Token inválido ou expirado' })
+  async resetPassword(@Body() data: ResetPasswordDto): Promise<void> {
+    await this.authService.resetPassword(data.token, data.password);
   }
 
   @Get('me')

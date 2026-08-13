@@ -74,6 +74,93 @@ http://localhost:3000/docs
 $ yarn install
 ```
 
+## E-mail e recuperação de senha
+
+Configure um SMTP transacional (Amazon SES, Postmark, SendGrid, Resend SMTP ou
+equivalente) antes de iniciar a aplicação:
+
+Use `.env.example` como base. Para desenvolvimento local, `REDIS_PASSWORD` pode
+ficar vazio; no ambiente de produção ele deve receber a senha do Redis gerenciado.
+
+```dotenv
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_REQUIRE_TLS=true
+SMTP_USER=usuario
+SMTP_PASSWORD=senha
+EMAIL_FROM="JC Agenda <no-reply@jcagenda.com.br>"
+PLATFORM_URL_PATTERN=https://{slug}.jcagenda.com.br
+PASSWORD_RESET_URL_PATTERN=https://app.jcagenda.com.br/reset-password?token={token}
+PASSWORD_RESET_EXPIRES_MINUTES=30
+PASSWORD_RESET_COOLDOWN_SECONDS=60
+EMAIL_OUTBOX_INTERVAL_MS=3000
+EMAIL_OUTBOX_BATCH_SIZE=100
+EMAIL_QUEUE_MAX_ATTEMPTS=8
+EMAIL_QUEUE_CONCURRENCY=5
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_TLS=false
+REDIS_QUEUE_PREFIX=jc-agenda
+JWT_SECRET=gere-um-segredo-aleatorio-com-no-minimo-32-caracteres
+CORS_ORIGINS=https://app.jcagenda.com.br,https://admin.jcagenda.com.br
+RATE_LIMIT_TTL_MS=60000
+RATE_LIMIT_REQUESTS=100
+ENABLE_SWAGGER=false
+```
+
+Os e-mails são persistidos primeiro em uma outbox no PostgreSQL, dentro da mesma
+transação que cria ou altera o usuário. Um dispatcher publica somente o UUID da
+mensagem no BullMQ/Redis; o worker consulta o conteúdo no banco e envia pelo
+SMTP com concorrência configurável, retentativas e backoff exponencial. Essa
+combinação evita perder e-mails caso o Redis esteja indisponível durante o
+commit da operação principal.
+
+Execute `yarn migration:run` no deploy para criar as tabelas da outbox e dos
+tokens de recuperação. Em produção, `REDIS_PASSWORD` e `SMTP_HOST` são
+obrigatórios e impedem a inicialização quando ausentes. Em desenvolvimento, a
+senha Redis pode ficar vazia. O `docker-compose.yml` habilita `requirepass`
+automaticamente apenas quando `REDIS_PASSWORD` possuir valor.
+
+Fluxos públicos de senha:
+
+```http
+POST /forgot-password
+POST /reset-password
+```
+
+Corpos esperados:
+
+```json
+{ "email": "usuario@empresa.com.br" }
+```
+
+```json
+{ "token": "token-recebido-por-email", "password": "nova-senha" }
+```
+
+Ambos retornam `204 No Content` quando concluídos. A solicitação sempre retorna
+o mesmo status, inclusive para e-mails inexistentes. Tokens expiram, são de uso
+único e uma nova solicitação por conta só é enfileirada após o cooldown. Após a
+troca, todas as sessões JWT anteriores são invalidadas e o usuário recebe uma
+notificação por e-mail.
+
+O frontend da redefinição deve usar HTTPS e definir `Referrer-Policy:
+no-referrer` para impedir que o token da URL seja enviado a terceiros.
+
+O cadastro em `POST /company-user` não recebe mais `password`: uma senha
+temporária forte é criada no servidor e enviada ao novo usuário.
+
+Em produção, `JWT_SECRET` com menos de 32 caracteres, URLs de e-mail sem HTTPS
+ou ausência de `CORS_ORIGINS` impedem a inicialização. O rate limit embutido é
+por instância; em múltiplas réplicas, mantenha também limitação no gateway/WAF
+ou configure um storage compartilhado para o Throttler.
+
+A documentação Swagger fica habilitada automaticamente apenas em `MODE=DEV`.
+Em produção, use `ENABLE_SWAGGER=true` somente quando houver controle de acesso
+na borda. A API aplica cabeçalhos de segurança com Helmet.
+
 ## Compile and run the project
 
 ```bash
