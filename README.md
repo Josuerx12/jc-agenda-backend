@@ -91,7 +91,7 @@ SMTP_USER=usuario
 SMTP_PASSWORD=senha
 EMAIL_FROM="JC Agenda <no-reply@jcagenda.com.br>"
 PLATFORM_URL_PATTERN=https://{slug}.jcagenda.com.br
-PASSWORD_RESET_URL_PATTERN=https://app.jcagenda.com.br/reset-password?token={token}
+PASSWORD_RESET_URL_PATTERN=https://{slug}.jcagenda.com.br/reset-password?token={token}
 PASSWORD_RESET_EXPIRES_MINUTES=30
 PASSWORD_RESET_COOLDOWN_SECONDS=60
 EMAIL_OUTBOX_INTERVAL_MS=3000
@@ -126,7 +126,7 @@ automaticamente apenas quando `REDIS_PASSWORD` possuir valor.
 Fluxos públicos de senha:
 
 ```http
-POST /forgot-password
+POST /forgot-password (header: x-company-id)
 POST /reset-password
 ```
 
@@ -141,8 +141,9 @@ Corpos esperados:
 ```
 
 Ambos retornam `204 No Content` quando concluídos. A solicitação sempre retorna
-o mesmo status, inclusive para e-mails inexistentes. Tokens expiram, são de uso
-único e uma nova solicitação por conta só é enfileirada após o cooldown. Após a
+o mesmo status, inclusive para e-mails inexistentes ou sem vínculo com a empresa
+informada em `x-company-id`. Tokens expiram, são de uso único e uma nova
+solicitação por conta só é enfileirada após o cooldown. Após a
 troca, todas as sessões JWT anteriores são invalidadas e o usuário recebe uma
 notificação por e-mail.
 

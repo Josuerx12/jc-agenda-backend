@@ -147,8 +147,10 @@ export class EmailProcessor
     ).replace('{slug}', 'empresa');
     const resetUrl = (
       process.env.PASSWORD_RESET_URL_PATTERN ??
-      'https://empresa.jcagenda.com.br/reset-password?token={token}'
-    ).replace('{token}', 'example');
+      'https://{slug}.jcagenda.com.br/reset-password?token={token}'
+    )
+      .replace('{slug}', 'empresa')
+      .replace('{token}', 'example');
     if (
       production &&
       [platformUrl, resetUrl].some(

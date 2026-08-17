@@ -224,14 +224,19 @@ export class AuthService {
     };
   }
 
-  async forgotPassword(email: string): Promise<void> {
+  async forgotPassword(companyId: string, email: string): Promise<void> {
     const startedAt = Date.now();
-    const user = await this.userRepository.findOne({
-      where: { email: this.normalizeEmail(email) },
-      relations: { companies: { company: true } },
+    const companyUser = await this.companyUserRepository.findOne({
+      where: {
+        companyId,
+        user: { email: this.normalizeEmail(email) },
+      },
+      relations: { user: true, company: true },
     });
+    const user = companyUser?.user;
 
-    // A resposta é sempre a mesma para não revelar quais e-mails estão cadastrados.
+    // A resposta é sempre a mesma para não revelar quais e-mails estão cadastrados
+    // ou vinculados à empresa informada.
     if (!user) {
       await this.ensureMinimumDuration(startedAt);
       return;
@@ -258,17 +263,13 @@ export class AuthService {
     const expiresInMinutes = Number(
       process.env.PASSWORD_RESET_EXPIRES_MINUTES ?? 30,
     );
-    const company = user.companies?.[0]?.company;
-    const platformUrl = company
-      ? this.emailService.platformUrl(company.slug)
-      : (process.env.PLATFORM_URL ?? 'https://jcagenda.com.br');
+    const platformUrl = this.emailService.platformUrl(companyUser.company.slug);
     const resetPattern =
       process.env.PASSWORD_RESET_URL_PATTERN ??
       `${platformUrl}/reset-password?token={token}`;
-    const resetUrl = resetPattern.replace(
-      '{token}',
-      encodeURIComponent(rawToken),
-    );
+    const resetUrl = resetPattern
+      .replace('{slug}', companyUser.company.slug)
+      .replace('{token}', encodeURIComponent(rawToken));
 
     await this.dataSource.transaction(async (manager) => {
       const tokenRepository = manager.getRepository(PasswordResetToken);

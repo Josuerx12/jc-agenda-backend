@@ -59,14 +59,18 @@ export class AuthController {
   @HttpCode(204)
   @IsPublic()
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @ApiCompanyIdHeader()
   @ApiOperation({ summary: 'Solicita um link de recuperação de senha' })
   @ApiResponse({
     status: 204,
     description:
       'Solicitação processada sem revelar se o e-mail está cadastrado',
   })
-  async forgotPassword(@Body() data: ForgotPasswordDto): Promise<void> {
-    await this.authService.forgotPassword(data.email);
+  async forgotPassword(
+    @CompanyId() companyId: string,
+    @Body() data: ForgotPasswordDto,
+  ): Promise<void> {
+    await this.authService.forgotPassword(companyId, data.email);
   }
 
   @Post('reset-password')
