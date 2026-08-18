@@ -48,8 +48,6 @@ class ConfigService {
       migrationsTableName: 'migration',
 
       migrations: [join(__dirname, '..', 'migration', '*{.ts,.js}')],
-
-      ssl: this.isProduction(),
     };
   }
 }
