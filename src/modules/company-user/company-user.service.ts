@@ -156,23 +156,19 @@ export class CompanyUserServices {
   ) {
     const { services, firstName, lastName, email, phone } =
       updateCompanyUserDto;
+    const companyId = updateCompanyUserDto.companyId!;
 
     return await this.dataSource.transaction(async (manager) => {
       const companyUserRepo = manager.getRepository(CompanyUser);
       const userRepo = manager.getRepository(User);
       const companyUserServiceRepo = manager.getRepository(CompanyUserService);
 
-      await ensureCanManageCompany(
-        companyUserRepo,
-        updateCompanyUserDto.companyId!,
-        userId,
-      );
+      await ensureCanManageCompany(companyUserRepo, companyId, userId);
 
-      let companyUser = await companyUserRepo.findOne({
-        where: { id },
+      const companyUser = await companyUserRepo.findOne({
+        where: { id, companyId },
         relations: {
           user: true,
-          services: true,
         },
       });
 
@@ -182,33 +178,27 @@ export class CompanyUserServices {
         );
       }
 
-      if (
-        services &&
-        services.length > 0 &&
-        (companyUser.isProfessional || updateCompanyUserDto.isProfessional)
-      ) {
+      const isProfessional =
+        updateCompanyUserDto.isProfessional ?? companyUser.isProfessional;
+      const requestedServiceIds = [...new Set(services ?? [])];
+      let foundServices: Service[] = [];
+
+      if (isProfessional && services !== undefined && services.length > 0) {
         const servicesRepo = manager.getRepository(Service);
         const queryBuilder = servicesRepo.createQueryBuilder('service');
-        queryBuilder.where('service.id IN (:...services)', { services });
+        queryBuilder
+          .where('service.id IN (:...services)', {
+            services: requestedServiceIds,
+          })
+          .andWhere('service.companyId = :companyId', { companyId });
 
-        const foundServices = await queryBuilder.getMany();
+        foundServices = await queryBuilder.getMany();
 
-        if (foundServices.length !== services.length) {
+        if (foundServices.length !== requestedServiceIds.length) {
           throw new NotFoundException(
             'Um ou mais serviços não foram encontrados, verifique e tente novamente.',
           );
         }
-
-        await companyUserServiceRepo.delete({ companyUser });
-
-        const companyUserServices = foundServices.map((service) => {
-          return companyUserServiceRepo.create({
-            companyUser: companyUser!,
-            service,
-          });
-        });
-
-        await companyUserServiceRepo.save(companyUserServices);
       }
 
       const normalizedEmail = email?.trim().toLowerCase();
@@ -241,12 +231,25 @@ export class CompanyUserServices {
         await userRepo.update(companyUser.user.id, { phone });
       }
 
-      companyUser = await companyUserRepo.save({
-        ...companyUser,
+      await companyUserRepo.update(id, {
         isAdmin: updateCompanyUserDto.isAdmin ?? companyUser.isAdmin,
-        isProfessional:
-          updateCompanyUserDto.isProfessional ?? companyUser.isProfessional,
+        isProfessional,
       });
+
+      if (services !== undefined || !isProfessional) {
+        await companyUserServiceRepo.delete({ companyUserId: id });
+
+        if (isProfessional && foundServices.length > 0) {
+          const companyUserServices = foundServices.map((service) =>
+            companyUserServiceRepo.create({
+              companyUserId: id,
+              serviceId: service.id,
+            }),
+          );
+
+          await companyUserServiceRepo.save(companyUserServices);
+        }
+      }
     });
   }
 
