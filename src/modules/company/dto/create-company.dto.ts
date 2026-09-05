@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
@@ -7,20 +7,30 @@ import {
   IsPhoneNumber,
   IsString,
   Length,
+  Validate,
   ValidateNested,
 } from 'class-validator';
+import {
+  CnpjValidatorConstraint,
+  normalizeCnpj,
+} from 'src/infra/validators/cnpj.validator';
 import { CreateAddressDto } from 'src/modules/addresses/dto/create-address.dto';
 
 export class CreateCompanyDto {
-  @ApiProperty({ description: 'CNPJ da empresa', example: '12345678000195' })
-  @IsString({
+  @ApiProperty({
+    description: 'CNPJ numérico ou alfanumérico da empresa',
+    example: '12.ABC.345/01DE-35',
+  })
+  @Transform(
+    ({ value }: { value: unknown }) =>
+      typeof value === 'string' ? normalizeCnpj(value) : value,
+    { toClassOnly: true },
+  )
+  @Validate(CnpjValidatorConstraint, {
     message: 'O CNPJ deve ser válido',
   })
   @IsNotEmpty({
     message: 'O CNPJ deve ser informado',
-  })
-  @Length(14, 14, {
-    message: 'O CNPJ deve ter 14 caracteres',
   })
   cnpj: string;
 

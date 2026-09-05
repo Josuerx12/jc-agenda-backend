@@ -16,6 +16,9 @@ export class Product extends BaseEntity {
   @Column({ name: 'description', type: 'text', nullable: true })
   description: string;
 
+  @Column({ name: 'image_id', type: 'uuid', nullable: true })
+  imageId: string | null;
+
   @ManyToOne(() => Company, (company) => company.products, {
     onDelete: 'RESTRICT',
   })

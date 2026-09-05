@@ -4,6 +4,7 @@ import { CompanyUser } from './company-user.entity';
 import { CompanyAddress } from './company-address.entity';
 import { CompanyUserService } from './company-user-service.entity';
 import { Product } from './product.entity';
+import { normalizeCnpj } from '../validators/cnpj.validator';
 
 @Entity({ name: 'companies' })
 export class Company extends BaseEntity {
@@ -47,4 +48,8 @@ export class Company extends BaseEntity {
 
   @OneToMany(() => Product, (product) => product.company)
   products: Relation<Product[]>;
+
+  setCnpj(cnpj: string) {
+    this.cnpj = normalizeCnpj(cnpj);
+  }
 }

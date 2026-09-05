@@ -3,6 +3,7 @@ import { CompanyUser } from '../../infra/entities/company-user.entity';
 import { Product } from '../../infra/entities/product.entity';
 import { Repository } from 'typeorm';
 import { ProductsService } from './products.service';
+import { MediaService } from '../media/media.service';
 
 describe('ProductsService', () => {
   const productRepository = {
@@ -14,7 +15,15 @@ describe('ProductsService', () => {
   const companyUserRepository = {
     findOne: jest.fn(),
   } as unknown as Repository<CompanyUser>;
-  const service = new ProductsService(productRepository, companyUserRepository);
+  const mediaService = {
+    storeImage: jest.fn(),
+    remove: jest.fn(),
+  } as unknown as MediaService;
+  const service = new ProductsService(
+    productRepository,
+    companyUserRepository,
+    mediaService,
+  );
 
   beforeEach(() => jest.clearAllMocks());
 
@@ -91,7 +100,7 @@ describe('ProductsService', () => {
       isAdmin: false,
       isOwner: true,
     } as CompanyUser);
-    jest.spyOn(productRepository, 'existsBy').mockResolvedValue(false);
+    jest.spyOn(productRepository, 'findOneBy').mockResolvedValue(null);
 
     await expect(
       service.remove('product-id', 'company-id', 'user-id'),
@@ -103,7 +112,11 @@ describe('ProductsService', () => {
       isAdmin: false,
       isOwner: true,
     } as CompanyUser);
-    jest.spyOn(productRepository, 'existsBy').mockResolvedValue(true);
+    jest.spyOn(productRepository, 'findOneBy').mockResolvedValue({
+      id: 'product-id',
+      companyId: 'company-id',
+      imageId: null,
+    } as Product);
     const softDeleteSpy = jest
       .spyOn(productRepository, 'softDelete')
       .mockResolvedValue({

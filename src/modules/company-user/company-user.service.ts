@@ -19,6 +19,9 @@ import { ensureCanManageCompany } from 'src/infra/authorization/company-permissi
 import { randomBytes } from 'node:crypto';
 import { EmailService } from '../email/email.service';
 import { EmailTemplate } from 'src/infra/entities/email-outbox.entity';
+import { MediaService } from '../media/media.service';
+import { buildMediaReference } from '../media/media-reference';
+import type { UploadedImageFile } from '../media/media.types';
 
 @Injectable()
 export class CompanyUserServices {
@@ -27,6 +30,7 @@ export class CompanyUserServices {
     private readonly companyUserRepository: Repository<CompanyUser>,
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly emailService: EmailService,
+    private readonly mediaService: MediaService,
   ) {}
 
   async create(createCompanyUserDto: CreateCompanyUserDto, userId: string) {
@@ -128,16 +132,24 @@ export class CompanyUserServices {
     return `Jc@${randomBytes(9).toString('base64url')}9a`;
   }
 
-  findAll(query: PaginateQuery, companyId: string) {
+  async findAll(query: PaginateQuery, companyId: string) {
     const queryBuilder = this.companyUserRepository
       .createQueryBuilder('companyUser')
       .where('companyUser.companyId = :companyId', { companyId });
 
-    return paginate(query, queryBuilder, companyUserPaginationConfig);
+    const result = await paginate(
+      query,
+      queryBuilder,
+      companyUserPaginationConfig,
+    );
+    return {
+      ...result,
+      data: result.data.map((companyUser) => this.withAvatar(companyUser)),
+    };
   }
 
-  findOne(id: string, companyId: string) {
-    return this.companyUserRepository.findOne({
+  async findOne(id: string, companyId: string) {
+    const companyUser = await this.companyUserRepository.findOne({
       where: { id, companyId },
       relations: {
         user: true,
@@ -147,6 +159,45 @@ export class CompanyUserServices {
         },
       },
     });
+    return companyUser ? this.withAvatar(companyUser) : null;
+  }
+
+  async updateAvatar(
+    id: string,
+    companyId: string,
+    userId: string,
+    file: UploadedImageFile | undefined,
+  ) {
+    const companyUser = await this.findAvatarTarget(id, companyId, userId);
+    const previousAvatarId = companyUser.avatarImageId;
+    const media = await this.mediaService.storeImage(
+      file,
+      companyId,
+      userId,
+      previousAvatarId,
+    );
+
+    try {
+      await this.companyUserRepository.update(id, {
+        avatarImageId: media.id,
+      });
+    } catch (error) {
+      await this.mediaService.remove(media.id);
+      throw error;
+    }
+
+    await this.mediaService.remove(previousAvatarId);
+    return media;
+  }
+
+  async removeAvatar(
+    id: string,
+    companyId: string,
+    userId: string,
+  ): Promise<void> {
+    const companyUser = await this.findAvatarTarget(id, companyId, userId);
+    await this.companyUserRepository.update(id, { avatarImageId: null });
+    await this.mediaService.remove(companyUser.avatarImageId);
   }
 
   async update(
@@ -267,5 +318,42 @@ export class CompanyUserServices {
     }
 
     await this.companyUserRepository.softDelete(id);
+    await this.mediaService.remove(companyUser.avatarImageId);
+  }
+
+  private async findAvatarTarget(
+    id: string,
+    companyId: string,
+    requestingUserId: string,
+  ): Promise<CompanyUser> {
+    const companyUser = await this.companyUserRepository.findOne({
+      where: { id, companyId },
+      select: {
+        id: true,
+        companyId: true,
+        userId: true,
+        avatarImageId: true,
+      },
+    });
+    if (!companyUser) {
+      throw new NotFoundException('Usuário da empresa não encontrado');
+    }
+
+    if (companyUser.userId !== requestingUserId) {
+      await ensureCanManageCompany(
+        this.companyUserRepository,
+        companyId,
+        requestingUserId,
+      );
+    }
+
+    return companyUser;
+  }
+
+  private withAvatar(companyUser: CompanyUser) {
+    return {
+      ...companyUser,
+      avatar: buildMediaReference(companyUser.avatarImageId),
+    };
   }
 }

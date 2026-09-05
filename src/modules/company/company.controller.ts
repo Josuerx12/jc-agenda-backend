@@ -7,6 +7,9 @@ import {
   Param,
   Delete,
   ForbiddenException,
+  HttpCode,
+  Put,
+  UploadedFile,
 } from '@nestjs/common';
 import { CompanyService } from './company.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
@@ -26,6 +29,9 @@ import {
   CompanyId,
 } from 'src/infra/decorators/company.decorator';
 import { UserId } from 'src/infra/decorators/user.decorator';
+import { ApiImageUpload } from '../media/image-upload.decorator';
+import type { UploadedImageFile } from '../media/media.types';
+import { CompanyBrandingResponseDto } from './dto/company-branding-response.dto';
 
 @ApiTags('Empresas')
 @Controller('company')
@@ -63,6 +69,34 @@ export class CompanyController {
     @Body() settings: UpdateCompanySettingsDto,
   ) {
     return this.companyService.updateSettings(companyId, userId, settings);
+  }
+
+  @Put('settings/logo')
+  @ApiCompanyIdHeader()
+  @ApiOperation({ summary: 'Definir ou substituir o logo da empresa' })
+  @ApiImageUpload()
+  updateLogo(
+    @CompanyId() companyId: string,
+    @UserId() userId: string,
+    @UploadedFile() file: UploadedImageFile | undefined,
+  ) {
+    return this.companyService.updateLogo(companyId, userId, file);
+  }
+
+  @Delete('settings/logo')
+  @HttpCode(204)
+  @ApiCompanyIdHeader()
+  @ApiOperation({ summary: 'Remover o logo da empresa' })
+  removeLogo(@CompanyId() companyId: string, @UserId() userId: string) {
+    return this.companyService.removeLogo(companyId, userId);
+  }
+
+  @Get('branding/:slug')
+  @IsPublic()
+  @ApiOperation({ summary: 'Consultar a identidade visual pública da empresa' })
+  @ApiOkResponse({ type: CompanyBrandingResponseDto })
+  getPublicBranding(@Param('slug') slug: string) {
+    return this.companyService.getPublicBranding(slug);
   }
 
   @Post()

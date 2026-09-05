@@ -162,6 +162,97 @@ A documentação Swagger fica habilitada automaticamente apenas em `MODE=DEV`.
 Em produção, use `ENABLE_SWAGGER=true` somente quando houver controle de acesso
 na borda. A API aplica cabeçalhos de segurança com Helmet.
 
+## Imagens e identidade visual
+
+As imagens são armazenadas no próprio servidor, mas **não** são expostas por
+uma pasta estática. Cada arquivo recebe um nome aleatório, fica com permissão de
+leitura restrita ao processo da API e só pode ser lido pelo endpoint
+`GET /media/:id`. O caminho físico e o nome usado no disco nunca fazem parte da
+resposta. São aceitos JPEG, PNG e WebP; a API confere a assinatura binária do
+arquivo, não apenas o `Content-Type` enviado pelo cliente.
+
+Configure o armazenamento:
+
+```dotenv
+# Obrigatoriamente absoluto em produção e fora de /public, /dist ou web roots.
+MEDIA_STORAGE_PATH=/var/lib/jcagenda/media
+MEDIA_MAX_IMAGE_SIZE_BYTES=5242880
+MEDIA_COMPANY_QUOTA_BYTES=1073741824
+```
+
+No servidor, crie o diretório em um volume persistente, permita acesso somente
+ao usuário do processo da API e inclua tanto esse diretório quanto o banco de
+dados na rotina de backup. Não configure Nginx, Apache, CDN ou `ServeStaticModule`
+apontando para `MEDIA_STORAGE_PATH`.
+
+Por padrão, cada imagem pode ter até 5 MiB e cada empresa pode ocupar até
+1 GiB. Os dois limites são configuráveis pelas variáveis acima e evitam que um
+tenant consuma sozinho todo o disco do servidor. Monitore também espaço livre e
+inodes no sistema operacional.
+
+Uploads usam `multipart/form-data`, campo `file`, e exigem JWT mais o header
+`x-company-id`:
+
+```http
+PUT    /products/:id/image
+DELETE /products/:id/image
+PUT    /services/:id/image
+DELETE /services/:id/image
+PUT    /company-user/:id/avatar
+DELETE /company-user/:id/avatar
+PUT    /company/settings/logo
+DELETE /company/settings/logo
+```
+
+Donos e administradores podem alterar imagens da empresa, produtos e serviços.
+No avatar, o próprio usuário também pode alterar sua foto. A resposta do upload
+contém a referência e os metadados da imagem:
+
+```json
+{
+  "id": "uuid-da-imagem",
+  "url": "/media/uuid-da-imagem",
+  "downloadUrl": "/media/uuid-da-imagem?download=true",
+  "originalName": "produto.webp",
+  "mimeType": "image/webp",
+  "sizeBytes": 245760
+}
+```
+
+Produtos e serviços retornam a mesma referência no campo `image`; usuários da
+empresa usam `avatar`; e as configurações/branding usam `logo`.
+
+As URLs são relativas à origem da API. `GET /media/:id` é público porque logos,
+catálogo e profissionais aparecem na página pública de agendamento; o UUID é
+opaco e não há endpoint de listagem. `?download=true` muda o
+`Content-Disposition` para download. Ao substituir ou excluir uma imagem, o
+arquivo anterior e seus metadados são removidos.
+
+As preferências visuais e de agenda são atualizadas parcialmente por:
+
+```http
+GET   /company/settings
+PATCH /company/settings
+GET   /company/branding/:slug
+```
+
+`PATCH /company/settings` aceita `timezone`, `slotIntervalMinutes`,
+`primaryColor`, `secondaryColor`, `accentColor`, `backgroundColor`,
+`surfaceColor`, `textColor`, `fontFamily`, `borderRadius`, `welcomeMessage` e
+`showCompanyName`. As cores usam `#RRGGBB`; fontes aceitas: `INTER`, `ROBOTO`,
+`POPPINS`, `MONTSERRAT`; arredondamentos: `NONE`, `SMALL`, `MEDIUM`, `LARGE`.
+O endpoint público de branding devolve somente os dados necessários para o tema
+da página da empresa, incluindo o objeto `logo`.
+
+Antes do deploy, execute:
+
+```bash
+yarn migration:run
+```
+
+O contrato completo para implementação do frontend está em
+[`docs/frontend-media-branding.md`](docs/frontend-media-branding.md).
+
 ## Compile and run the project
 
 ```bash

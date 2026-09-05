@@ -5,6 +5,7 @@ import { Service } from '../../infra/entities/services.entity';
 import { User } from '../../infra/entities/user.entity';
 import { EmailService } from '../email/email.service';
 import { CompanyUserServices } from './company-user.service';
+import { MediaService } from '../media/media.service';
 
 describe('CompanyUserService', () => {
   const companyId = '5278972e-a7cc-4ea1-bdd7-beeff90e8e7c';
@@ -44,6 +45,7 @@ describe('CompanyUserService', () => {
     companyUserRepository as unknown as Repository<CompanyUser>,
     dataSource as unknown as DataSource,
     {} as EmailService,
+    {} as MediaService,
   );
 
   beforeEach(() => {

@@ -27,6 +27,9 @@ export class Service extends BaseEntity {
   @Column({ name: 'duration', type: 'int' })
   durationInMinutes: number;
 
+  @Column({ name: 'image_id', type: 'uuid', nullable: true })
+  imageId: string | null;
+
   @OneToMany(
     () => CompanyUserService,
     (companyUserService) => companyUserService.service,

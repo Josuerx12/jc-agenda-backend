@@ -3,10 +3,14 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
+  Put,
+  UploadedFile,
 } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   Paginate,
   PaginatedSwaggerDocs,
@@ -22,7 +26,10 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { productPaginationConfig } from './pagination/product-pagination.config';
 import { ProductsService } from './products.service';
+import { ApiImageUpload } from '../media/image-upload.decorator';
+import type { UploadedImageFile } from '../media/media.types';
 
+@ApiTags('Produtos')
 @Controller('products')
 @ApiCompanyIdHeader()
 export class ProductsController {
@@ -54,6 +61,29 @@ export class ProductsController {
   @Get(':id')
   findOne(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.productsService.findOne(id, companyId);
+  }
+
+  @Put(':id/image')
+  @ApiOperation({ summary: 'Definir ou substituir a imagem do produto' })
+  @ApiImageUpload()
+  updateImage(
+    @Param('id') id: string,
+    @CompanyId() companyId: string,
+    @UserId() userId: string,
+    @UploadedFile() file: UploadedImageFile | undefined,
+  ) {
+    return this.productsService.updateImage(id, companyId, userId, file);
+  }
+
+  @Delete(':id/image')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Remover a imagem do produto' })
+  removeImage(
+    @Param('id') id: string,
+    @CompanyId() companyId: string,
+    @UserId() userId: string,
+  ) {
+    return this.productsService.removeImage(id, companyId, userId);
   }
 
   @Patch(':id')

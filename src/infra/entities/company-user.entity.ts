@@ -28,6 +28,9 @@ export class CompanyUser extends BaseEntity {
   @Column({ name: 'company_professional', type: 'boolean', default: false })
   isProfessional: boolean;
 
+  @Column({ name: 'avatar_image_id', type: 'uuid', nullable: true })
+  avatarImageId: string | null;
+
   @ManyToOne(() => User, (user) => user.companies, { onDelete: 'RESTRICT' })
   @JoinColumn({
     name: 'user_id',

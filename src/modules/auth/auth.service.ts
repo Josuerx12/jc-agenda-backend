@@ -19,6 +19,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { PasswordResetToken } from 'src/infra/entities/password-reset-token.entity';
 import { EmailService } from '../email/email.service';
 import { EmailTemplate } from 'src/infra/entities/email-outbox.entity';
+import { buildMediaReference } from '../media/media-reference';
 
 @Injectable()
 export class AuthService {
@@ -69,6 +70,8 @@ export class AuthService {
       });
 
       let company = companyRepo.create(data.company);
+
+      company.setCnpj(data.company.cnpj);
 
       const alreadyExists = await companyRepo.findOne({
         where: [{ cnpj: company.cnpj }, { slug: company.slug }],
@@ -186,6 +189,7 @@ export class AuthService {
         isAdmin: true,
         isOwner: true,
         isProfessional: true,
+        avatarImageId: true,
         user: {
           id: true,
           firstName: true,
@@ -221,6 +225,7 @@ export class AuthService {
       isBlocked: user.isBlocked,
       isOwner: companyUser.isOwner,
       isProfessional: companyUser.isProfessional,
+      avatar: buildMediaReference(companyUser.avatarImageId),
     };
   }
 

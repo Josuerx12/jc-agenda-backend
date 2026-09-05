@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { MediaReferenceDto } from 'src/modules/media/dto/media-reference.dto';
 
 export class MeResponseDto {
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
@@ -30,4 +31,7 @@ export class MeResponseDto {
 
   @ApiProperty({ example: true })
   isProfessional: boolean;
+
+  @ApiProperty({ type: MediaReferenceDto, nullable: true })
+  avatar: MediaReferenceDto | null;
 }

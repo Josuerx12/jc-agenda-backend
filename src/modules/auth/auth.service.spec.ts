@@ -40,7 +40,12 @@ describe('AuthService forgotPassword', () => {
     );
     manager.getRepository.mockReturnValue(tokenRepository);
     jest
-      .spyOn(service as never, 'ensureMinimumDuration')
+      .spyOn(
+        service as unknown as {
+          ensureMinimumDuration(startedAt: number): Promise<void>;
+        },
+        'ensureMinimumDuration',
+      )
       .mockResolvedValue(undefined);
     delete process.env.PASSWORD_RESET_URL_PATTERN;
   });

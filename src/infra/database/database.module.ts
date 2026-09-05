@@ -20,6 +20,7 @@ import { AppointmentService } from '../entities/appointment-service.entity';
 import { CompanySetting } from '../entities/company-setting.entity';
 import { EmailOutbox } from '../entities/email-outbox.entity';
 import { PasswordResetToken } from '../entities/password-reset-token.entity';
+import { MediaFile } from '../entities/media-file.entity';
 
 const entities = [
   Address,
@@ -41,6 +42,7 @@ const entities = [
   CompanySetting,
   EmailOutbox,
   PasswordResetToken,
+  MediaFile,
 ];
 
 @Global()

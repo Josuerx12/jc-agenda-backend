@@ -9,6 +9,10 @@ import { ensureCanManageCompany } from 'src/infra/authorization/company-permissi
 import { BadRequestException } from '@nestjs/common';
 import { UpdateCompanySettingsDto } from './dto/update-company-settings.dto';
 import { CompanySetting } from 'src/infra/entities/company-setting.entity';
+import { MediaService } from '../media/media.service';
+import { buildMediaReference } from '../media/media-reference';
+import type { UploadedImageFile } from '../media/media.types';
+import { CompanyBrandingResponseDto } from './dto/company-branding-response.dto';
 
 @Injectable()
 export class CompanyService {
@@ -19,6 +23,7 @@ export class CompanyService {
     private readonly companyUserRepository: Repository<CompanyUser>,
     @InjectRepository(CompanySetting)
     private readonly companySettingRepository: Repository<CompanySetting>,
+    private readonly mediaService: MediaService,
   ) {}
 
   create(createCompanyDto: CreateCompanyDto) {
@@ -32,7 +37,8 @@ export class CompanyService {
 
   async getSettings(companyId: string, userId: string) {
     await ensureCanManageCompany(this.companyUserRepository, companyId, userId);
-    return this.findOrCreateSettings(companyId);
+    const settings = await this.findOrCreateSettings(companyId);
+    return this.withLogo(settings);
   }
 
   async updateSettings(
@@ -41,12 +47,54 @@ export class CompanyService {
     settings: UpdateCompanySettingsDto,
   ) {
     await ensureCanManageCompany(this.companyUserRepository, companyId, userId);
-    if (!Intl.supportedValuesOf('timeZone').includes(settings.timezone)) {
+    if (
+      settings.timezone !== undefined &&
+      !Intl.supportedValuesOf('timeZone').includes(settings.timezone)
+    ) {
       throw new BadRequestException('Fuso horário inválido');
     }
     const current = await this.findOrCreateSettings(companyId);
     await this.companySettingRepository.update(current.id, settings);
-    return this.companySettingRepository.findOneByOrFail({ id: current.id });
+    const updated = await this.companySettingRepository.findOneByOrFail({
+      id: current.id,
+    });
+    return this.withLogo(updated);
+  }
+
+  async updateLogo(
+    companyId: string,
+    userId: string,
+    file: UploadedImageFile | undefined,
+  ) {
+    await ensureCanManageCompany(this.companyUserRepository, companyId, userId);
+    const settings = await this.findOrCreateSettings(companyId);
+    const previousLogoId = settings.logoImageId;
+    const media = await this.mediaService.storeImage(
+      file,
+      companyId,
+      userId,
+      previousLogoId,
+    );
+
+    try {
+      settings.logoImageId = media.id;
+      await this.companySettingRepository.save(settings);
+    } catch (error) {
+      await this.mediaService.remove(media.id);
+      throw error;
+    }
+
+    await this.mediaService.remove(previousLogoId);
+    return media;
+  }
+
+  async removeLogo(companyId: string, userId: string): Promise<void> {
+    await ensureCanManageCompany(this.companyUserRepository, companyId, userId);
+    const settings = await this.findOrCreateSettings(companyId);
+    const previousLogoId = settings.logoImageId;
+    settings.logoImageId = null;
+    await this.companySettingRepository.save(settings);
+    await this.mediaService.remove(previousLogoId);
   }
 
   findAll() {
@@ -89,7 +137,19 @@ export class CompanyService {
       throw new NotFoundException('Empresa não encontrada');
     }
 
-    return company;
+    return {
+      ...company,
+      branding: await this.brandingFor(company),
+    };
+  }
+
+  async getPublicBranding(slug: string): Promise<CompanyBrandingResponseDto> {
+    const company = await this.companyRepository.findOne({
+      where: { slug },
+      select: { id: true, slug: true, trandingName: true },
+    });
+    if (!company) throw new NotFoundException('Empresa não encontrada');
+    return this.brandingFor(company);
   }
 
   private async findOrCreateSettings(companyId: string) {
@@ -102,5 +162,34 @@ export class CompanyService {
       timezone: 'America/Sao_Paulo',
       slotIntervalMinutes: 60,
     });
+  }
+
+  private withLogo(settings: CompanySetting) {
+    return {
+      ...settings,
+      logo: buildMediaReference(settings.logoImageId),
+    };
+  }
+
+  private async brandingFor(
+    company: Pick<Company, 'id' | 'slug' | 'trandingName'>,
+  ): Promise<CompanyBrandingResponseDto> {
+    const settings = await this.findOrCreateSettings(company.id);
+    return {
+      companyId: company.id,
+      slug: company.slug,
+      trandingName: company.trandingName,
+      logo: buildMediaReference(settings.logoImageId),
+      primaryColor: settings.primaryColor,
+      secondaryColor: settings.secondaryColor,
+      accentColor: settings.accentColor,
+      backgroundColor: settings.backgroundColor,
+      surfaceColor: settings.surfaceColor,
+      textColor: settings.textColor,
+      fontFamily: settings.fontFamily,
+      borderRadius: settings.borderRadius,
+      welcomeMessage: settings.welcomeMessage,
+      showCompanyName: settings.showCompanyName,
+    };
   }
 }
