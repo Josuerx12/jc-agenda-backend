@@ -17,10 +17,12 @@ import { ProfessionalTimeOff } from '../entities/professional-time-off.entity';
 import { Client } from '../entities/client.entity';
 import { Appointment } from '../entities/appointment.entity';
 import { AppointmentService } from '../entities/appointment-service.entity';
+import { AppointmentProduct } from '../entities/appointment-product.entity';
 import { CompanySetting } from '../entities/company-setting.entity';
 import { EmailOutbox } from '../entities/email-outbox.entity';
 import { PasswordResetToken } from '../entities/password-reset-token.entity';
 import { MediaFile } from '../entities/media-file.entity';
+import { ServiceCategory } from '../entities/service-category.entity';
 
 const entities = [
   Address,
@@ -39,10 +41,12 @@ const entities = [
   Client,
   Appointment,
   AppointmentService,
+  AppointmentProduct,
   CompanySetting,
   EmailOutbox,
   PasswordResetToken,
   MediaFile,
+  ServiceCategory,
 ];
 
 @Global()

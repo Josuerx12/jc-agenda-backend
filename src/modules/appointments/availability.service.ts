@@ -1,3 +1,6 @@
+import { buildMediaReference } from '../media/media-reference';
+import { ProfessionalServicesQueryDto } from './dto/professional-services-query.dto';
+import { Service } from '../../infra/entities/services.entity';
 import {
   BadRequestException,
   Injectable,
@@ -34,6 +37,8 @@ export class AvailabilityService {
     private readonly professionals: Repository<CompanyUser>,
     @InjectRepository(CompanyUserService)
     private readonly professionalServices: Repository<CompanyUserService>,
+    @InjectRepository(Service)
+    private readonly catalogServices: Repository<Service>,
     @InjectRepository(ProfessionalWorkSchedule)
     private readonly schedules: Repository<ProfessionalWorkSchedule>,
     @InjectRepository(CompanyHoliday)
@@ -51,20 +56,222 @@ export class AvailabilityService {
         isProfessional: true,
         user: { isActive: true, isBlocked: false },
       },
-      relations: { user: true, services: { service: true } },
+      relations: { user: true },
     });
     return professionals.map((professional) => ({
       id: professional.id,
       firstName: professional.user.firstName,
       lastName: professional.user.lastName,
-      services: professional.services.map(({ service }) => ({
+      avatar: buildMediaReference(professional.avatarImageId),
+    }));
+  }
+
+  async listProfessionalCategories(
+    companyId: string,
+    professionalId: string,
+    search?: string,
+  ) {
+    const query = this.professionalServices
+      .createQueryBuilder('link')
+      .innerJoin('link.service', 'service')
+      .innerJoin('service.category', 'category')
+      .innerJoin('link.companyUser', 'professional')
+      .innerJoin('professional.user', 'user')
+      .where('professional.id = :professionalId', { professionalId })
+      .andWhere('professional.companyId = :companyId', { companyId })
+      .andWhere('professional.isProfessional = true')
+      .andWhere('user.isActive = true AND user.isBlocked = false')
+      .select('category.id', 'id')
+      .addSelect('category.name', 'name')
+      .addSelect('category.description', 'description')
+      .addSelect('COUNT(DISTINCT service.id)', 'serviceCount')
+      .groupBy('category.id')
+      .addGroupBy('category.name')
+      .addGroupBy('category.description')
+      .orderBy('category.name', 'ASC')
+      .limit(50);
+    if (search)
+      query.andWhere('category.name ILIKE :search', { search: `%${search}%` });
+    const rows = await query.getRawMany<{
+      id: string;
+      name: string;
+      description: string | null;
+      serviceCount: string;
+    }>();
+    return rows.map((row) => ({
+      ...row,
+      serviceCount: Number(row.serviceCount),
+    }));
+  }
+
+  async listBookingCategories(companyId: string, search?: string) {
+    const query = this.catalogServices
+      .createQueryBuilder('service')
+      .innerJoin('service.category', 'category')
+      .innerJoin('service.users', 'link')
+      .innerJoin('link.companyUser', 'professional')
+      .innerJoin('professional.user', 'user')
+      .where('service.companyId = :companyId', { companyId })
+      .andWhere('professional.companyId = :companyId', { companyId })
+      .andWhere('professional.isProfessional = true')
+      .andWhere('user.isActive = true AND user.isBlocked = false')
+      .select('category.id', 'id')
+      .addSelect('category.name', 'name')
+      .addSelect('category.description', 'description')
+      .addSelect('COUNT(DISTINCT service.id)', 'serviceCount')
+      .groupBy('category.id')
+      .addGroupBy('category.name')
+      .addGroupBy('category.description')
+      .orderBy('category.name', 'ASC')
+      .limit(50);
+    if (search)
+      query.andWhere('category.name ILIKE :search', {
+        search: `%${search}%`,
+      });
+    const rows = await query.getRawMany<{
+      id: string;
+      name: string;
+      description: string | null;
+      serviceCount: string;
+    }>();
+    return rows.map((row) => ({
+      ...row,
+      serviceCount: Number(row.serviceCount),
+    }));
+  }
+
+  async listBookingServices(
+    companyId: string,
+    query: ProfessionalServicesQueryDto,
+  ) {
+    const builder = this.catalogServices
+      .createQueryBuilder('service')
+      .innerJoinAndSelect('service.category', 'category')
+      .innerJoin('service.users', 'link')
+      .innerJoin('link.companyUser', 'professional')
+      .innerJoin('professional.user', 'user')
+      .where('service.companyId = :companyId', { companyId })
+      .andWhere('professional.companyId = :companyId', { companyId })
+      .andWhere('professional.isProfessional = true')
+      .andWhere('user.isActive = true AND user.isBlocked = false')
+      .distinct(true);
+    if (query.categoryId)
+      builder.andWhere('category.id = :categoryId', {
+        categoryId: query.categoryId,
+      });
+    if (query.search)
+      builder.andWhere(
+        '(service.name ILIKE :search OR service.description ILIKE :search)',
+        { search: `%${query.search.trim()}%` },
+      );
+    const [services, totalItems] = await builder
+      .orderBy('service.name', 'ASC')
+      .skip((query.page - 1) * query.limit)
+      .take(query.limit)
+      .getManyAndCount();
+    return this.toServicesPage(services, totalItems, query);
+  }
+
+  async listProfessionalsForServices(companyId: string, serviceIds: string[]) {
+    const uniqueIds = [...new Set(serviceIds)];
+    const professionals = await this.professionals
+      .createQueryBuilder('professional')
+      .innerJoinAndSelect('professional.user', 'user')
+      .innerJoin('professional.services', 'link')
+      .innerJoin('link.service', 'service')
+      .where('professional.companyId = :companyId', { companyId })
+      .andWhere('professional.isProfessional = true')
+      .andWhere('user.isActive = true AND user.isBlocked = false')
+      .andWhere('service.companyId = :companyId', { companyId })
+      .andWhere('service.id IN (:...serviceIds)', { serviceIds: uniqueIds })
+      .groupBy('professional.id')
+      .addGroupBy('user.id')
+      .having('COUNT(DISTINCT service.id) = :serviceCount', {
+        serviceCount: uniqueIds.length,
+      })
+      .orderBy('user.firstName', 'ASC')
+      .addOrderBy('user.lastName', 'ASC')
+      .getMany();
+    return professionals.map((professional) => ({
+      id: professional.id,
+      firstName: professional.user.firstName,
+      lastName: professional.user.lastName,
+      avatar: buildMediaReference(professional.avatarImageId),
+    }));
+  }
+
+  async listProfessionalServices(
+    companyId: string,
+    professionalId: string,
+    query: ProfessionalServicesQueryDto,
+  ) {
+    const builder = this.professionalServices
+      .createQueryBuilder('link')
+      .innerJoinAndSelect('link.service', 'service')
+      .innerJoinAndSelect('service.category', 'category')
+      .innerJoin('link.companyUser', 'professional')
+      .innerJoin('professional.user', 'user')
+      .where('professional.id = :professionalId', { professionalId })
+      .andWhere('professional.companyId = :companyId', { companyId })
+      .andWhere('professional.isProfessional = true')
+      .andWhere('user.isActive = true AND user.isBlocked = false');
+    if (query.categoryId)
+      builder.andWhere('category.id = :categoryId', {
+        categoryId: query.categoryId,
+      });
+    if (query.search)
+      builder.andWhere(
+        '(service.name ILIKE :search OR service.description ILIKE :search)',
+        { search: `%${query.search.trim()}%` },
+      );
+    const [links, totalItems] = await builder
+      .orderBy('service.name', 'ASC')
+      .skip((query.page - 1) * query.limit)
+      .take(query.limit)
+      .getManyAndCount();
+    return {
+      data: links.map(({ service }) => ({
         id: service.id,
+        categoryId: service.categoryId,
+        category: { id: service.category.id, name: service.category.name },
         name: service.name,
         description: service.description,
         price: Number(service.price),
         durationInMinutes: service.durationInMinutes,
+        image: buildMediaReference(service.imageId),
       })),
-    }));
+      meta: {
+        currentPage: query.page,
+        itemsPerPage: query.limit,
+        totalItems,
+        totalPages: Math.ceil(totalItems / query.limit),
+      },
+    };
+  }
+
+  private toServicesPage(
+    services: Service[],
+    totalItems: number,
+    query: ProfessionalServicesQueryDto,
+  ) {
+    return {
+      data: services.map((service) => ({
+        id: service.id,
+        categoryId: service.categoryId,
+        category: { id: service.category.id, name: service.category.name },
+        name: service.name,
+        description: service.description,
+        price: Number(service.price),
+        durationInMinutes: service.durationInMinutes,
+        image: buildMediaReference(service.imageId),
+      })),
+      meta: {
+        currentPage: query.page,
+        itemsPerPage: query.limit,
+        totalItems,
+        totalPages: Math.ceil(totalItems / query.limit),
+      },
+    };
   }
 
   async getAvailability(
@@ -121,22 +328,12 @@ export class AvailabilityService {
       professionalId,
       dayOfWeek: localDayOfWeek(date),
     });
-    const allServices = await this.professionalServices.find({
-      where: { companyUserId: professionalId },
-      relations: { service: true },
-    });
     const base = {
       professional: {
         id: professional.id,
         firstName: professional.user.firstName,
         lastName: professional.user.lastName,
       },
-      services: allServices.map((link) => ({
-        id: link.service.id,
-        name: link.service.name,
-        price: Number(link.service.price),
-        durationInMinutes: link.service.durationInMinutes,
-      })),
       selectedServices: selectedServices.map((service) => ({
         id: service.id,
         name: service.name,

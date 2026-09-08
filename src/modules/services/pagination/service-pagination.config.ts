@@ -8,9 +8,10 @@ export const servicePaginationConfig: PaginateConfig<Service> = {
     'durationInMinutes',
     'createdAt',
     'updatedAt',
+    'category.name',
   ],
   defaultSortBy: [['name', 'ASC']],
-  searchableColumns: ['name', 'description'],
+  searchableColumns: ['name', 'description', 'category.name'],
 
   filterableColumns: {
     name: [FilterOperator.EQ, FilterOperator.ILIKE],
@@ -26,6 +27,7 @@ export const servicePaginationConfig: PaginateConfig<Service> = {
       FilterOperator.LTE,
     ],
     createdAt: [FilterOperator.GTE, FilterOperator.LTE, FilterOperator.BTW],
+    categoryId: [FilterOperator.EQ],
   },
 
   throwOnInvalidFilter: true,

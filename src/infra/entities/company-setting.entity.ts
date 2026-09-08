@@ -1,6 +1,7 @@
 import { Column, Entity, JoinColumn, OneToOne, type Relation } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Company } from './company.entity';
+import { DEFAULT_COMPANY_BRAND_COLORS } from '../config/company-branding.constants';
 
 @Entity({ name: 'company_settings' })
 export class CompanySetting extends BaseEntity {
@@ -25,7 +26,7 @@ export class CompanySetting extends BaseEntity {
     name: 'primary_color',
     type: 'char',
     length: 7,
-    default: '#2563EB',
+    default: DEFAULT_COMPANY_BRAND_COLORS.primaryColor,
   })
   primaryColor: string;
 
@@ -33,12 +34,57 @@ export class CompanySetting extends BaseEntity {
     name: 'secondary_color',
     type: 'char',
     length: 7,
-    default: '#0F172A',
+    default: DEFAULT_COMPANY_BRAND_COLORS.secondaryColor,
   })
   secondaryColor: string;
 
-  @Column({ name: 'accent_color', type: 'char', length: 7, default: '#F59E0B' })
+  @Column({
+    name: 'accent_color',
+    type: 'char',
+    length: 7,
+    default: DEFAULT_COMPANY_BRAND_COLORS.accentColor,
+  })
   accentColor: string;
+
+  @Column({
+    name: 'dark_color',
+    type: 'char',
+    length: 7,
+    default: DEFAULT_COMPANY_BRAND_COLORS.darkColor,
+  })
+  darkColor: string;
+
+  @Column({
+    name: 'positive_color',
+    type: 'char',
+    length: 7,
+    default: DEFAULT_COMPANY_BRAND_COLORS.positiveColor,
+  })
+  positiveColor: string;
+
+  @Column({
+    name: 'negative_color',
+    type: 'char',
+    length: 7,
+    default: DEFAULT_COMPANY_BRAND_COLORS.negativeColor,
+  })
+  negativeColor: string;
+
+  @Column({
+    name: 'info_color',
+    type: 'char',
+    length: 7,
+    default: DEFAULT_COMPANY_BRAND_COLORS.infoColor,
+  })
+  infoColor: string;
+
+  @Column({
+    name: 'warning_color',
+    type: 'char',
+    length: 7,
+    default: DEFAULT_COMPANY_BRAND_COLORS.warningColor,
+  })
+  warningColor: string;
 
   @Column({
     name: 'background_color',
@@ -56,7 +102,12 @@ export class CompanySetting extends BaseEntity {
   })
   surfaceColor: string;
 
-  @Column({ name: 'text_color', type: 'char', length: 7, default: '#0F172A' })
+  @Column({
+    name: 'text_color',
+    type: 'char',
+    length: 7,
+    default: DEFAULT_COMPANY_BRAND_COLORS.darkColor,
+  })
   textColor: string;
 
   @Column({

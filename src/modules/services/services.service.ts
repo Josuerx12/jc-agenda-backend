@@ -12,6 +12,7 @@ import { ensureCanManageCompany } from 'src/infra/authorization/company-permissi
 import { MediaService } from '../media/media.service';
 import { buildMediaReference } from '../media/media-reference';
 import type { UploadedImageFile } from '../media/media.types';
+import { ServiceCategory } from '../../infra/entities/service-category.entity';
 
 @Injectable()
 export class ServicesService {
@@ -22,6 +23,8 @@ export class ServicesService {
     private readonly companyUserRepository: Repository<CompanyUser>,
     @InjectRepository(CompanyUserService)
     private readonly companyUserServiceRepository: Repository<CompanyUserService>,
+    @InjectRepository(ServiceCategory)
+    private readonly categoryRepository: Repository<ServiceCategory>,
     private readonly mediaService: MediaService,
   ) {}
   async create(createServiceDto: CreateServiceDto, userId: string) {
@@ -30,6 +33,13 @@ export class ServicesService {
       createServiceDto.companyId,
       userId,
     );
+    if (
+      !(await this.categoryRepository.existsBy({
+        id: createServiceDto.categoryId,
+        companyId: createServiceDto.companyId,
+      }))
+    )
+      throw new NotFoundException('Categoria de serviço não encontrada');
 
     const service = await this.serviceRepository.save(createServiceDto);
     return this.withImage(service);
@@ -39,6 +49,7 @@ export class ServicesService {
     const queryBuilder = this.serviceRepository
       .createQueryBuilder('service')
       .innerJoin('service.company', 'company')
+      .leftJoinAndSelect('service.category', 'category')
       .where('company.id = :companyId', { companyId });
 
     const result = await paginate(query, queryBuilder, servicePaginationConfig);
@@ -51,18 +62,24 @@ export class ServicesService {
   async simpleList(companyId: string) {
     const services = await this.serviceRepository.find({
       where: { companyId },
+      relations: { category: true },
       select: {
         id: true,
         companyId: true,
         name: true,
         imageId: true,
+        categoryId: true,
+        category: { id: true, name: true },
       },
     });
     return services.map((service) => this.withImage(service));
   }
 
   async findOne(id: string, companyId: string) {
-    const service = await this.serviceRepository.findOneBy({ id, companyId });
+    const service = await this.serviceRepository.findOne({
+      where: { id, companyId },
+      relations: { category: true },
+    });
     return service ? this.withImage(service) : null;
   }
 
@@ -92,6 +109,16 @@ export class ServicesService {
       service.durationInMinutes = durationInMinutes;
     if (name !== undefined) service.name = name;
     if (price !== undefined) service.price = price;
+    if (updateServiceDto.categoryId !== undefined) {
+      if (
+        !(await this.categoryRepository.existsBy({
+          id: updateServiceDto.categoryId,
+          companyId: companyId!,
+        }))
+      )
+        throw new NotFoundException('Categoria de serviço não encontrada');
+      service.categoryId = updateServiceDto.categoryId;
+    }
 
     return this.withImage(await this.serviceRepository.save(service));
   }

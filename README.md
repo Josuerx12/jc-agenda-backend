@@ -237,12 +237,17 @@ GET   /company/branding/:slug
 ```
 
 `PATCH /company/settings` aceita `timezone`, `slotIntervalMinutes`,
-`primaryColor`, `secondaryColor`, `accentColor`, `backgroundColor`,
-`surfaceColor`, `textColor`, `fontFamily`, `borderRadius`, `welcomeMessage` e
-`showCompanyName`. As cores usam `#RRGGBB`; fontes aceitas: `INTER`, `ROBOTO`,
-`POPPINS`, `MONTSERRAT`; arredondamentos: `NONE`, `SMALL`, `MEDIUM`, `LARGE`.
+`primaryColor`, `secondaryColor`, `accentColor`, `darkColor`, `positiveColor`,
+`negativeColor`, `infoColor`, `warningColor`, `backgroundColor`, `surfaceColor`,
+`textColor`, `fontFamily`, `borderRadius`, `welcomeMessage` e `showCompanyName`.
+As cores usam `#RRGGBB`; fontes aceitas: `INTER`, `ROBOTO`, `POPPINS`,
+`MONTSERRAT`; arredondamentos: `NONE`, `SMALL`, `MEDIUM`, `LARGE`.
 O endpoint público de branding devolve somente os dados necessários para o tema
 da página da empresa, incluindo o objeto `logo`.
+
+Os tokens de marca padrão são `primary: #5B2A6E`, `secondary: #B56576`,
+`accent: #D6B36A`, `dark: #221827`, `positive: #2E8B6D`, `negative: #C14953`,
+`info: #4A7EA8` e `warning: #E3A745`.
 
 Antes do deploy, execute:
 
@@ -252,6 +257,16 @@ yarn migration:run
 
 O contrato completo para implementação do frontend está em
 [`docs/frontend-media-branding.md`](docs/frontend-media-branding.md).
+
+O handoff específico do módulo de produtos está em
+[`docs/frontend-products.md`](docs/frontend-products.md).
+
+O fluxo completo de agendamento, desde a identificação do cliente pelo telefone
+até a confirmação da reserva, está em
+[`docs/frontend-appointments.md`](docs/frontend-appointments.md).
+
+Categorias e seleção progressiva de serviços estão documentadas em
+[`docs/frontend-service-categories.md`](docs/frontend-service-categories.md).
 
 ## Compile and run the project
 

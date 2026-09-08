@@ -1,8 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, IsUUID } from 'class-validator';
 
 export class CreateServiceDto {
   companyId: string;
+
+  @ApiProperty({ description: 'Categoria do serviço', format: 'uuid' })
+  @IsUUID('all', { message: 'A categoria deve ser um UUID válido' })
+  categoryId: string;
 
   @ApiProperty({ description: 'Nome do serviço' })
   @IsNotEmpty({ message: 'O nome do serviço é obrigatório' })

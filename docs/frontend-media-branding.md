@@ -3,6 +3,12 @@
 Este documento descreve o contrato que o frontend deve implementar para
 imagens de catálogo, profissionais e identidade visual da empresa.
 
+Para o fluxo completo de CRUD, filtros e telas de produtos, consulte
+[`frontend-products.md`](frontend-products.md).
+
+Para o fluxo público e a gestão interna de agendamentos, consulte
+[`frontend-appointments.md`](frontend-appointments.md).
+
 ## Convenções
 
 - Rotas de escrita exigem `Authorization: Bearer <jwt>` e `x-company-id`.
@@ -91,6 +97,11 @@ export interface UpdateCompanySettings {
   primaryColor?: `#${string}`;
   secondaryColor?: `#${string}`;
   accentColor?: `#${string}`;
+  darkColor?: `#${string}`;
+  positiveColor?: `#${string}`;
+  negativeColor?: `#${string}`;
+  infoColor?: `#${string}`;
+  warningColor?: `#${string}`;
   backgroundColor?: `#${string}`;
   surfaceColor?: `#${string}`;
   textColor?: `#${string}`;
@@ -119,6 +130,11 @@ export interface CompanyBranding {
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
+  darkColor: string;
+  positiveColor: string;
+  negativeColor: string;
+  infoColor: string;
+  warningColor: string;
   backgroundColor: string;
   surfaceColor: string;
   textColor: string;
@@ -140,9 +156,29 @@ Use variáveis CSS na raiz da página da empresa:
 --brand-primary: primaryColor;
 --brand-secondary: secondaryColor;
 --brand-accent: accentColor;
+--brand-dark: darkColor;
+--brand-positive: positiveColor;
+--brand-negative: negativeColor;
+--brand-info: infoColor;
+--brand-warning: warningColor;
 --brand-background: backgroundColor;
 --brand-surface: surfaceColor;
 --brand-text: textColor;
+```
+
+Valores padrão oficiais:
+
+```ts
+const brand = {
+  primary: '#5B2A6E',
+  secondary: '#B56576',
+  accent: '#D6B36A',
+  dark: '#221827',
+  positive: '#2E8B6D',
+  negative: '#C14953',
+  info: '#4A7EA8',
+  warning: '#E3A745',
+};
 ```
 
 Mapeie `borderRadius` para tokens do design system, por exemplo: `NONE = 0`,

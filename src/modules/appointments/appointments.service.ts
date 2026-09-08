@@ -160,10 +160,16 @@ export class AppointmentsService {
         'Usuário não tem permissão para alterar este agendamento',
       );
     if (appointment.status === status) return appointment;
+    if (status === AppointmentStatus.IN_PROGRESS)
+      throw new BadRequestException('Use a rota de início do atendimento');
+    if (status === AppointmentStatus.COMPLETED)
+      throw new BadRequestException('Use a rota de finalização do atendimento');
     if (
-      ![AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED].includes(
-        appointment.status,
-      )
+      ![
+        AppointmentStatus.SCHEDULED,
+        AppointmentStatus.CONFIRMED,
+        AppointmentStatus.IN_PROGRESS,
+      ].includes(appointment.status)
     )
       throw new BadRequestException('O status atual do agendamento é terminal');
     if (
@@ -172,6 +178,13 @@ export class AppointmentsService {
     )
       throw new BadRequestException(
         'Um agendamento confirmado não pode voltar para agendado',
+      );
+    if (
+      appointment.status === AppointmentStatus.IN_PROGRESS &&
+      status !== AppointmentStatus.CANCELED
+    )
+      throw new BadRequestException(
+        'Um atendimento em andamento só pode ser cancelado ou finalizado',
       );
     if (
       [AppointmentStatus.COMPLETED, AppointmentStatus.NO_SHOW].includes(

@@ -11,10 +11,12 @@ import { Company } from './company.entity';
 import { CompanyUser } from './company-user.entity';
 import { Client } from './client.entity';
 import { AppointmentService } from './appointment-service.entity';
+import { AppointmentProduct } from './appointment-product.entity';
 
 export enum AppointmentStatus {
   SCHEDULED = 'SCHEDULED',
   CONFIRMED = 'CONFIRMED',
+  IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
   CANCELED = 'CANCELED',
   NO_SHOW = 'NO_SHOW',
@@ -29,7 +31,7 @@ export class Appointment extends BaseEntity {
   @Column({ name: 'end_at', type: 'timestamptz' }) endAt: Date;
   @Column({ name: 'total_duration_minutes', type: 'int' })
   totalDurationMinutes: number;
-  @Column({ name: 'total_price', type: 'decimal', precision: 10, scale: 2 })
+  @Column({ name: 'total_price', type: 'decimal', precision: 14, scale: 2 })
   totalPrice: number;
   @Column({
     name: 'status',
@@ -38,6 +40,10 @@ export class Appointment extends BaseEntity {
     default: AppointmentStatus.SCHEDULED,
   })
   status: AppointmentStatus;
+  @Column({ name: 'started_at', type: 'timestamptz', nullable: true })
+  startedAt: Date | null;
+  @Column({ name: 'completed_at', type: 'timestamptz', nullable: true })
+  completedAt: Date | null;
 
   @ManyToOne(() => Company, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'company_id' })
@@ -50,4 +56,6 @@ export class Appointment extends BaseEntity {
   client: Relation<Client>;
   @OneToMany(() => AppointmentService, (item) => item.appointment)
   services: Relation<AppointmentService[]>;
+  @OneToMany(() => AppointmentProduct, (item) => item.appointment)
+  products: Relation<AppointmentProduct[]>;
 }

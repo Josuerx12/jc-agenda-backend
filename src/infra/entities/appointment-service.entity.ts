@@ -1,9 +1,17 @@
-import { Column, Entity, JoinColumn, ManyToOne, type Relation } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  Unique,
+  type Relation,
+} from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Appointment } from './appointment.entity';
 import { Service } from './services.entity';
 
 @Entity({ name: 'appointment_services' })
+@Unique('UQ_appointment_service', ['appointmentId', 'serviceId'])
 export class AppointmentService extends BaseEntity {
   @Column({ name: 'appointment_id', type: 'uuid' }) appointmentId: string;
   @Column({ name: 'service_id', type: 'uuid' }) serviceId: string;

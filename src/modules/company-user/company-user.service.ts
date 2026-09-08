@@ -60,7 +60,11 @@ export class CompanyUserServices {
       }
 
       const queryBuilder = servicesRepo.createQueryBuilder('service');
-      queryBuilder.where('service.id IN (:...services)', { services });
+      queryBuilder
+        .where('service.id IN (:...services)', { services })
+        .andWhere('service.companyId = :companyId', {
+          companyId: createCompanyUserDto.companyId,
+        });
 
       const temporaryPassword = this.generateTemporaryPassword();
       const hashedPassword = await hash(temporaryPassword, 10);

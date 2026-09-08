@@ -9,11 +9,14 @@ import {
 import { BaseEntity } from './base.entity';
 import { CompanyUserService } from './company-user-service.entity';
 import { Company } from './company.entity';
+import { ServiceCategory } from './service-category.entity';
 
 @Entity({ name: 'services' })
 export class Service extends BaseEntity {
   @Column({ name: 'company_id', type: 'uuid' })
   companyId: string;
+  @Column({ name: 'category_id', type: 'uuid' })
+  categoryId: string;
 
   @Column({ name: 'name', type: 'varchar', length: 255 })
   name: string;
@@ -43,4 +46,10 @@ export class Service extends BaseEntity {
     name: 'company_id',
   })
   company: Relation<Company>;
+
+  @ManyToOne(() => ServiceCategory, (category) => category.services, {
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({ name: 'category_id' })
+  category: Relation<ServiceCategory>;
 }

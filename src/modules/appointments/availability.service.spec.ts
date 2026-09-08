@@ -11,6 +11,62 @@ import { Service } from '../../infra/entities/services.entity';
 import { AvailabilityService } from './availability.service';
 
 describe('AvailabilityService', () => {
+  it('busca profissionais que atendem todos os serviços selecionados', async () => {
+    const having = jest.fn().mockReturnThis();
+    const getMany = jest.fn().mockResolvedValue([
+      {
+        id: 'professional-id',
+        avatarImageId: null,
+        user: { firstName: 'Ana', lastName: 'Silva' },
+      },
+    ]);
+    const queryBuilder = {
+      innerJoinAndSelect: jest.fn().mockReturnThis(),
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      groupBy: jest.fn().mockReturnThis(),
+      addGroupBy: jest.fn().mockReturnThis(),
+      having,
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      getMany,
+    };
+    const professionals = {
+      createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
+    } as unknown as Repository<CompanyUser>;
+    const empty = {} as Repository<never>;
+    const availability = new AvailabilityService(
+      empty,
+      empty,
+      professionals,
+      empty,
+      empty,
+      empty,
+      empty,
+      empty,
+      empty,
+    );
+
+    const result = await availability.listProfessionalsForServices(
+      'company-id',
+      ['service-1', 'service-2'],
+    );
+
+    expect(having).toHaveBeenCalledWith(
+      'COUNT(DISTINCT service.id) = :serviceCount',
+      { serviceCount: 2 },
+    );
+    expect(result).toEqual([
+      {
+        id: 'professional-id',
+        firstName: 'Ana',
+        lastName: 'Silva',
+        avatar: null,
+      },
+    ]);
+  });
+
   it('remove almoço, folga e agendamento sem remover horários adjacentes', async () => {
     const serviceItem = {
       id: 'service-id',
@@ -43,6 +99,7 @@ describe('AvailabilityService', () => {
     const professionalServices = {
       find: jest.fn().mockResolvedValue(links),
     } as unknown as Repository<CompanyUserService>;
+    const catalogServices = {} as Repository<Service>;
     const schedules = {
       findOneBy: jest.fn().mockResolvedValue({
         startTime: '08:00',
@@ -75,6 +132,7 @@ describe('AvailabilityService', () => {
       settings,
       professionals,
       professionalServices,
+      catalogServices,
       schedules,
       holidays,
       timeOffs,

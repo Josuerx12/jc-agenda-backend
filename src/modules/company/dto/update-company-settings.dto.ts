@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
+import { DEFAULT_COMPANY_BRAND_COLORS } from 'src/infra/config/company-branding.constants';
 import {
   IsBoolean,
   IsIn,
@@ -28,7 +29,7 @@ export class UpdateCompanySettingsDto {
   @IsIn([15, 30, 60])
   slotIntervalMinutes?: number;
 
-  @ApiPropertyOptional({ example: '#2563EB' })
+  @ApiPropertyOptional({ example: DEFAULT_COMPANY_BRAND_COLORS.primaryColor })
   @IsOptional()
   @Transform(normalizeColor)
   @Matches(/^#[0-9A-F]{6}$/, {
@@ -36,7 +37,7 @@ export class UpdateCompanySettingsDto {
   })
   primaryColor?: string;
 
-  @ApiPropertyOptional({ example: '#0F172A' })
+  @ApiPropertyOptional({ example: DEFAULT_COMPANY_BRAND_COLORS.secondaryColor })
   @IsOptional()
   @Transform(normalizeColor)
   @Matches(/^#[0-9A-F]{6}$/, {
@@ -44,13 +45,53 @@ export class UpdateCompanySettingsDto {
   })
   secondaryColor?: string;
 
-  @ApiPropertyOptional({ example: '#F59E0B' })
+  @ApiPropertyOptional({ example: DEFAULT_COMPANY_BRAND_COLORS.accentColor })
   @IsOptional()
   @Transform(normalizeColor)
   @Matches(/^#[0-9A-F]{6}$/, {
     message: 'accentColor deve ser uma cor hexadecimal',
   })
   accentColor?: string;
+
+  @ApiPropertyOptional({ example: DEFAULT_COMPANY_BRAND_COLORS.darkColor })
+  @IsOptional()
+  @Transform(normalizeColor)
+  @Matches(/^#[0-9A-F]{6}$/, {
+    message: 'darkColor deve ser uma cor hexadecimal',
+  })
+  darkColor?: string;
+
+  @ApiPropertyOptional({ example: DEFAULT_COMPANY_BRAND_COLORS.positiveColor })
+  @IsOptional()
+  @Transform(normalizeColor)
+  @Matches(/^#[0-9A-F]{6}$/, {
+    message: 'positiveColor deve ser uma cor hexadecimal',
+  })
+  positiveColor?: string;
+
+  @ApiPropertyOptional({ example: DEFAULT_COMPANY_BRAND_COLORS.negativeColor })
+  @IsOptional()
+  @Transform(normalizeColor)
+  @Matches(/^#[0-9A-F]{6}$/, {
+    message: 'negativeColor deve ser uma cor hexadecimal',
+  })
+  negativeColor?: string;
+
+  @ApiPropertyOptional({ example: DEFAULT_COMPANY_BRAND_COLORS.infoColor })
+  @IsOptional()
+  @Transform(normalizeColor)
+  @Matches(/^#[0-9A-F]{6}$/, {
+    message: 'infoColor deve ser uma cor hexadecimal',
+  })
+  infoColor?: string;
+
+  @ApiPropertyOptional({ example: DEFAULT_COMPANY_BRAND_COLORS.warningColor })
+  @IsOptional()
+  @Transform(normalizeColor)
+  @Matches(/^#[0-9A-F]{6}$/, {
+    message: 'warningColor deve ser uma cor hexadecimal',
+  })
+  warningColor?: string;
 
   @ApiPropertyOptional({ example: '#F8FAFC' })
   @IsOptional()
@@ -68,7 +109,7 @@ export class UpdateCompanySettingsDto {
   })
   surfaceColor?: string;
 
-  @ApiPropertyOptional({ example: '#0F172A' })
+  @ApiPropertyOptional({ example: DEFAULT_COMPANY_BRAND_COLORS.darkColor })
   @IsOptional()
   @Transform(normalizeColor)
   @Matches(/^#[0-9A-F]{6}$/, {
